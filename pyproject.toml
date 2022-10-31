@@ -1,0 +1,23 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+
+[project]
+name = "ToddBenchmark"
+version = "0.0.1"
+authors = [
+    { name = "Maxime Darrin", email = "maxime.darrin@outlook.com" },
+]
+description = "A benchmark for Text Out of Distribution detection methods.It is built on top of the HuggingFace Transformers/datasets libraries. It provides benchmarks tailored for text OOD detection."
+readme = "README.md"
+requires-python = ">=3.7"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/pypa/sampleproject"
+"Bug Tracker" = "https://github.com/pypa/sampleproject/issues"

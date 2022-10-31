@@ -1,0 +1,288 @@
+from datasets import load_dataset
+from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
+from transformers import AutoTokenizer
+
+
+# Each load_[dataset] function returns a dictionary with the following keys: "train", "validation", "test" containing
+# a list of tuples (input, target) for each split.
+
+
+def print_dataset(name, dataset):
+    for k, v in dataset.items():
+        print(f"{name} {k} dataset size: {len(v)}")
+
+
+def no_empty_dataset_sanity_check(name, dataset):
+    for split, data in dataset.items():
+        # check data length:
+        assert len(data) > 0, f"{name} {split} dataset is empty"
+
+
+def load_daily_dialog(tokenizer, dataset_name):
+    dataset = load_dataset(dataset_name)
+
+    def accumulate_dialogs(ds):
+        _dataset = []
+        for element in ds["dialog"]:
+            acc = ""
+            for k, sentence in enumerate(element[:-1]):
+                acc += sentence + tokenizer.eos_token
+                _dataset.append((acc, element[k + 1]))
+
+        return _dataset
+
+    train = accumulate_dialogs(dataset["train"])
+    val = accumulate_dialogs(dataset["validation"])
+    test = accumulate_dialogs(dataset["test"])
+
+    return {"train": train, "validation": val, "test": test}
+
+
+def load_multi_woz_v22(tokenizer, dataset_name, dataset_config=None):
+    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+
+    def accumulate_dialogs(ds):
+        _dataset = []
+        for element in ds:
+            acc = ""
+            for k, sentence in enumerate(element["turns"]["utterance"][:-1]):
+                acc += sentence + tokenizer.eos_token
+                _dataset.append((acc, element["turns"]["utterance"][k + 1]))
+        return _dataset
+
+    train = accumulate_dialogs(dataset["train"])
+    val = accumulate_dialogs(dataset["validation"])
+    test = accumulate_dialogs(dataset["test"])
+
+    return {"train": train, "validation": val, "test": test}
+
+
+def load_movieqa():
+    dataset = load_dataset("wiki_movies", ignore_verifications=True)
+
+    def process_split(ds):
+        _dataset = []
+        for element in ds:
+            q, a = element.split("\t")
+            q = q[1:]
+            _dataset.append((q, a))
+        return _dataset
+
+    train = process_split(dataset["train"]["text"])
+    val = process_split(dataset["validation"]["text"])
+    test = process_split(dataset["test"]["text"])
+
+    return {"train": train, "validation": val, "test": test}
+
+
+def load_silicone_dataset(
+    dataset_name, dataset_config, dataset_split, size, tokenizer, switch_lang=False
+):
+    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+
+    def accumulate_dialogs(ds):
+        _dataset = [(e["Utterance"], "a") for e in ds]
+        return _dataset
+
+    train = accumulate_dialogs(dataset["train"])
+    val = accumulate_dialogs(dataset["validation"])
+    test = accumulate_dialogs(dataset["test"])
+
+    return dataset
+
+
+def load_translation_dataset(tokenizer, dataset_name, dataset_config, dataset_split):
+    src, tgt = dataset_config.split("-")
+
+    # Try to load the dataset from the datasets library with one config or its permutation
+    try:
+        dataset = load_dataset(dataset_name, dataset_config)
+    except ValueError:
+        dataset_config = tgt + "-" + src
+        src, tgt = dataset_config.split("-")
+
+        try:
+            dataset = load_dataset(
+                dataset_name, dataset_config, ignore_verifications=True
+            )
+        except ValueError:
+            raise ValueError(
+                "Invalid dataset config. None of the following configs are valid: "
+                + dataset_config
+                + ", "
+                + tgt
+                + "-"
+                + src
+            )
+
+    def process_split(ds):
+        _dataset = []
+        for element in ds:
+            _dataset.append((element[src], element[tgt]))
+        return _dataset
+
+    train = process_split(dataset["train"])
+    val = process_split(dataset["validation"])
+    test = process_split(dataset["test"])
+
+    return {"train": train, "validation": val, "test": test}
+
+
+def load_wmt16_dataset(tokenizer, dataset_name, dataset_config, dataset_split):
+    return load_translation_dataset(
+        tokenizer, dataset_name, dataset_config, dataset_split
+    )
+
+
+def load_news_commentaty_dataset(
+    tokenizer, dataset_name, dataset_config, dataset_split
+):
+    return load_translation_dataset(
+        tokenizer, dataset_name, dataset_config, dataset_split
+    )
+
+
+# load emea from load_translation_dataset:
+def load_emea_dataset(tokenizer, dataset_name, dataset_config, dataset_split):
+    return load_translation_dataset(
+        tokenizer, dataset_name, dataset_config, dataset_split
+    )
+
+
+def load_europarl_dataset(tokenizer, dataset_name, dataset_config):
+    lang1, lang2 = dataset_config.split("-")
+    switch_lang = False
+    try:
+        dataset = load_dataset(
+            dataset_name, lang1=lang1, lang2=lang2, ignore_verifications=True
+        )
+    except ValueError:
+        try:
+            dataset = load_dataset(
+                dataset_name, lang1=lang2, lang2=lang1, ignore_verifications=True
+            )
+            switch_lang = True
+        except ValueError:
+            raise ValueError(
+                "Invalid dataset config. None of the following configs are valid: "
+                + dataset_config
+                + ", "
+                + lang2
+                + "-"
+                + lang1
+            )
+
+    d = dataset["train"]
+
+    if switch_lang:
+        _dataset = [(d["translation"][lang2], d["translation"][lang1]) for d in dataset]
+    else:
+        _dataset = [(d["translation"][lang1], d["translation"][lang2]) for d in dataset]
+
+    # split dataset into train, validation and test with 70%, 20% and 10% of the data
+    train_size = int(0.7 * len(_dataset))
+    val_size = int(0.2 * len(_dataset))
+    test_size = len(_dataset) - train_size - val_size
+
+    train = _dataset[:train_size]
+    val = _dataset[train_size : train_size + val_size]
+    test = _dataset[train_size + val_size :]
+
+    return {"train": train, "validation": val, "test": test}
+
+
+def load_amazon_reviews_multi(tokenizer, dataset_name, dataset_config):
+    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+
+    train = [(d["review_title"], d["review_title"]) for d in dataset["train"]]
+    val = [(d["review_title"], d["review_title"]) for d in dataset["validation"]]
+    test = [(d["review_title"], d["review_title"]) for d in dataset["test"]]
+    return {"train": train, "validation": val, "test": test}
+
+
+def prep_dataset(
+    dataset_name, dataset_config, dataset_split, size, tokenizer, switch_lang=False
+):
+    if dataset_name == "daily_dialog":
+        dataset = load_daily_dialog(
+            tokenizer,
+            dataset_name,
+            dataset_config,
+        )
+
+    if dataset_name == "multi_woz_v22":
+        dataset = load_multi_woz_v22(
+            tokenizer,
+            dataset_name,
+            dataset_config,
+        )
+
+    elif dataset_name == "silicone":
+        dataset = load_silicone_dataset(
+            dataset_name, dataset_config, dataset_split, size, tokenizer, switch_lang
+        )
+
+    elif dataset_name == "movieqa":
+        dataset = load_movieqa(tokenizer, dataset_name, dataset_config)
+
+    elif dataset_name == "wmt16":
+        dataset = load_wmt16_dataset(
+            tokenizer, dataset_name, dataset_config, dataset_split
+        )
+    elif dataset_name == "news_commentary":
+        dataset = load_news_commentaty_dataset(
+            tokenizer, dataset_name, dataset_config, dataset_split
+        )
+    elif dataset_name == "qanastek/EMEA-V3":
+        dataset = load_emea_dataset(
+            tokenizer, dataset_name, dataset_config, dataset_split
+        )
+
+    elif dataset_name == "europarl_bilingual":
+        dataset = load_europarl_dataset(
+            tokenizer,
+            dataset_name,
+            dataset_config,
+        )
+
+    elif dataset_name == "amazon_reviews_multi":
+        dataset = load_amazon_reviews_multi(
+            tokenizer,
+            dataset_name,
+            dataset_config,
+        )
+    else:
+        dataset = None
+
+    return dataset
+
+
+def prep_model(model_name):
+    if model_name == "microsoft/DialoGPT-medium" or model_name == "tosin/dialogpt_mwoz":
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer.truncation_side = "left"
+        tokenizer.model_max_length = 50
+        model = AutoModelForCausalLM.from_pretrained(model_name)
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+
+    return model, tokenizer
+
+
+def prep_inputs(x, tokenizer, dataset_name):
+    if dataset_name == "daily_dialog" or dataset_name == "movieqa":
+        inputs = tokenizer(x, return_tensors="pt", truncation=True)
+    else:
+        inputs = tokenizer(x, return_tensors="pt", truncation=True)
+
+    return inputs
+
+
+if __name__ == "__main__":
+    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
+
+    # Load a model and tokenizer
+    model_name = "microsoft/DialoGPT-medium"
+    model, tokenizer = prep_model(model_name)
+    pass
