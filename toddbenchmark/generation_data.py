@@ -1,4 +1,5 @@
 from datasets import load_dataset
+from torch.utils.data import Dataset
 
 
 # Each load_[dataset] function returns a dictionary with the following keys: "train", "validation", "test" containing
@@ -209,6 +210,15 @@ def prep_dataset(
     dataset_config,
     tokenizer,
 ):
+    """
+
+    :param dataset_name:
+    :param dataset_config:
+    :param tokenizer:
+    :return: Tuple of (train, validation, test) datasets. Each dataset is a list of dictionaries with keys
+    "source", "target"
+    """
+
     if dataset_name == "daily_dialog":
         dataset = load_daily_dialog(
             tokenizer,
@@ -261,7 +271,15 @@ def prep_dataset(
     else:
         dataset = None
 
-    return dataset
+    def to_dict(dataset, split):
+        ds = dataset[split]
+        return [{"source": s, "target": t} for s, t in ds]
+
+    train = Dataset(to_dict(dataset, "train"))
+    val = Dataset(to_dict(dataset, "validation"))
+    test = Dataset(to_dict(dataset, "test"))
+
+    return train, val, test
 
 
 def prep_model(model_name):
