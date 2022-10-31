@@ -1,6 +1,4 @@
 from datasets import load_dataset
-from transformers import AutoModelForCausalLM, AutoModelForSeq2SeqLM
-from transformers import AutoTokenizer
 
 
 # Each load_[dataset] function returns a dictionary with the following keys: "train", "validation", "test" containing
@@ -76,7 +74,8 @@ def load_movieqa():
 
 
 def load_silicone_dataset(
-    dataset_name, dataset_config, dataset_split, size, tokenizer, switch_lang=False
+    dataset_name,
+    dataset_config,
 ):
     dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
 
@@ -88,10 +87,13 @@ def load_silicone_dataset(
     val = accumulate_dialogs(dataset["validation"])
     test = accumulate_dialogs(dataset["test"])
 
-    return dataset
+    return {"train": train, "validation": val, "test": test}
 
 
-def load_translation_dataset(tokenizer, dataset_name, dataset_config, dataset_split):
+def load_translation_dataset(
+    dataset_name,
+    dataset_config,
+):
     src, tgt = dataset_config.split("-")
 
     # Try to load the dataset from the datasets library with one config or its permutation
@@ -128,28 +130,32 @@ def load_translation_dataset(tokenizer, dataset_name, dataset_config, dataset_sp
     return {"train": train, "validation": val, "test": test}
 
 
-def load_wmt16_dataset(tokenizer, dataset_name, dataset_config, dataset_split):
-    return load_translation_dataset(
-        tokenizer, dataset_name, dataset_config, dataset_split
-    )
+def load_wmt16_dataset(
+    dataset_name,
+    dataset_config,
+):
+    return load_translation_dataset(dataset_name, dataset_config=dataset_config)
 
 
-def load_news_commentaty_dataset(
-    tokenizer, dataset_name, dataset_config, dataset_split
+def load_news_commentary_dataset(
+    dataset_name,
+    dataset_config,
 ):
     return load_translation_dataset(
-        tokenizer, dataset_name, dataset_config, dataset_split
+        dataset_name,
+        dataset_config=dataset_config,
     )
 
 
 # load emea from load_translation_dataset:
-def load_emea_dataset(tokenizer, dataset_name, dataset_config, dataset_split):
+def load_emea_dataset(dataset_name, dataset_config):
     return load_translation_dataset(
-        tokenizer, dataset_name, dataset_config, dataset_split
+        dataset_name,
+        dataset_config=dataset_config,
     )
 
 
-def load_europarl_dataset(tokenizer, dataset_name, dataset_config):
+def load_europarl_dataset(dataset_name, dataset_config):
     lang1, lang2 = dataset_config.split("-")
     switch_lang = False
     try:
@@ -172,8 +178,6 @@ def load_europarl_dataset(tokenizer, dataset_name, dataset_config):
                 + lang1
             )
 
-    d = dataset["train"]
-
     if switch_lang:
         _dataset = [(d["translation"][lang2], d["translation"][lang1]) for d in dataset]
     else:
@@ -182,7 +186,7 @@ def load_europarl_dataset(tokenizer, dataset_name, dataset_config):
     # split dataset into train, validation and test with 70%, 20% and 10% of the data
     train_size = int(0.7 * len(_dataset))
     val_size = int(0.2 * len(_dataset))
-    test_size = len(_dataset) - train_size - val_size
+    # test_size = len(_dataset) - train_size - val_size
 
     train = _dataset[:train_size]
     val = _dataset[train_size : train_size + val_size]
@@ -191,7 +195,7 @@ def load_europarl_dataset(tokenizer, dataset_name, dataset_config):
     return {"train": train, "validation": val, "test": test}
 
 
-def load_amazon_reviews_multi(tokenizer, dataset_name, dataset_config):
+def load_amazon_reviews_multi(dataset_name, dataset_config):
     dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
 
     train = [(d["review_title"], d["review_title"]) for d in dataset["train"]]
@@ -201,16 +205,17 @@ def load_amazon_reviews_multi(tokenizer, dataset_name, dataset_config):
 
 
 def prep_dataset(
-    dataset_name, dataset_config, dataset_split, size, tokenizer, switch_lang=False
+    dataset_name,
+    dataset_config,
+    tokenizer,
 ):
     if dataset_name == "daily_dialog":
         dataset = load_daily_dialog(
             tokenizer,
             dataset_name,
-            dataset_config,
         )
 
-    if dataset_name == "multi_woz_v22":
+    elif dataset_name == "multi_woz_v22":
         dataset = load_multi_woz_v22(
             tokenizer,
             dataset_name,
@@ -219,35 +224,37 @@ def prep_dataset(
 
     elif dataset_name == "silicone":
         dataset = load_silicone_dataset(
-            dataset_name, dataset_config, dataset_split, size, tokenizer, switch_lang
+            dataset_name,
+            dataset_config,
         )
 
     elif dataset_name == "movieqa":
-        dataset = load_movieqa(tokenizer, dataset_name, dataset_config)
+        dataset = load_movieqa()
 
     elif dataset_name == "wmt16":
         dataset = load_wmt16_dataset(
-            tokenizer, dataset_name, dataset_config, dataset_split
+            dataset_name,
+            dataset_config,
         )
     elif dataset_name == "news_commentary":
-        dataset = load_news_commentaty_dataset(
-            tokenizer, dataset_name, dataset_config, dataset_split
+        dataset = load_news_commentary_dataset(
+            dataset_name,
+            dataset_config,
         )
     elif dataset_name == "qanastek/EMEA-V3":
         dataset = load_emea_dataset(
-            tokenizer, dataset_name, dataset_config, dataset_split
+            dataset_name,
+            dataset_config,
         )
 
     elif dataset_name == "europarl_bilingual":
         dataset = load_europarl_dataset(
-            tokenizer,
             dataset_name,
             dataset_config,
         )
 
     elif dataset_name == "amazon_reviews_multi":
         dataset = load_amazon_reviews_multi(
-            tokenizer,
             dataset_name,
             dataset_config,
         )
