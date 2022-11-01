@@ -24,8 +24,15 @@ class GenerationDataset(Dataset):
     def __getitem__(self, index):
         return self.dataset[index]
 
+    def map(self, fn):
+        self.dataset = [x | fn(x) for x in self.dataset]
+        return self
+
     def __len__(self):
         return len(self.dataset)
+
+    def __repr__(self):
+        return f"GenerationDataset(len={len(self)}, features={self.dataset[0].keys()})"
 
 
 def load_daily_dialog(tokenizer, dataset_name):
