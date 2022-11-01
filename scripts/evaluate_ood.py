@@ -1,25 +1,14 @@
-from collections import defaultdict
-
-import transformers
-from torch.utils.data import DataLoader
-from transformers import (
-    AutoTokenizer,
-    AutoModelForSeq2SeqLM,
-    Trainer,
-    TrainingArguments,
-)
-from datasets import load_metric
-import torch
-import numpy as np
 import argparse
+from typing import List
 
-from typing import List, Dict, Any, Union, Optional, Tuple
-from Todd import FilterType
-
-from toddbenchmark.generation_data import prep_dataset, prep_model, prep_inputs
-from toddbenchmark.utils import prepare_detectors, evaluate_dataloader
+import numpy as np
+import torch
+from datasets import load_metric
+from torch.utils.data import DataLoader
 
 from configs.datasets_configs import DATASETS_CONFIGS
+from toddbenchmark.generation_data import prep_dataset, prep_model
+from toddbenchmark.utils import prepare_detectors
 
 
 def parse_args():

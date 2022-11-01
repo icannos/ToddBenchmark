@@ -1,6 +1,6 @@
 from datasets import load_dataset
 from torch.utils.data import Dataset
-
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
 
 # Each load_[dataset] function returns a dictionary with the following keys: "train", "validation", "test" containing
 # a list of tuples (input, target) for each split.
@@ -15,6 +15,17 @@ def no_empty_dataset_sanity_check(name, dataset):
     for split, data in dataset.items():
         # check data length:
         assert len(data) > 0, f"{name} {split} dataset is empty"
+
+
+class GenerationDataset(Dataset):
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __getitem__(self, index):
+        return self.dataset[index]
+
+    def __len__(self):
+        return len(self.dataset)
 
 
 def load_daily_dialog(tokenizer, dataset_name):
@@ -124,9 +135,9 @@ def load_translation_dataset(
             _dataset.append((element[src], element[tgt]))
         return _dataset
 
-    train = process_split(dataset["train"])
-    val = process_split(dataset["validation"])
-    test = process_split(dataset["test"])
+    train = process_split(dataset["train"]["translation"])
+    val = process_split(dataset["validation"]["translation"])
+    test = process_split(dataset["test"]["translation"])
 
     return {"train": train, "validation": val, "test": test}
 
@@ -275,9 +286,9 @@ def prep_dataset(
         ds = dataset[split]
         return [{"source": s, "target": t} for s, t in ds]
 
-    train = Dataset(to_dict(dataset, "train"))
-    val = Dataset(to_dict(dataset, "validation"))
-    test = Dataset(to_dict(dataset, "test"))
+    train = GenerationDataset(to_dict(dataset, "train"))
+    val = GenerationDataset(to_dict(dataset, "validation"))
+    test = GenerationDataset(to_dict(dataset, "test"))
 
     return train, val, test
 
@@ -305,9 +316,4 @@ def prep_inputs(x, tokenizer, dataset_name):
 
 
 if __name__ == "__main__":
-    from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
-
-    # Load a model and tokenizer
-    model_name = "microsoft/DialoGPT-medium"
-    model, tokenizer = prep_model(model_name)
     pass
