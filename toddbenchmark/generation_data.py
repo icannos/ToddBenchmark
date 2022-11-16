@@ -1,6 +1,8 @@
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
+from .utils import try_load_dataset_config
+
 
 # Each load_[dataset] function returns a dictionary with the following keys: "train", "validation", "test" containing
 # a list of tuples (input, target) for each split.
@@ -115,26 +117,7 @@ def load_translation_dataset(
 ):
     src, tgt = dataset_config.split("-")
 
-    # Try to load the dataset from the datasets library with one config or its permutation
-    try:
-        dataset = load_dataset(dataset_name, dataset_config)
-    except ValueError:
-        dataset_config = tgt + "-" + src
-        src, tgt = dataset_config.split("-")
-
-        try:
-            dataset = load_dataset(
-                dataset_name, dataset_config, ignore_verifications=True
-            )
-        except ValueError:
-            raise ValueError(
-                "Invalid dataset config. None of the following configs are valid: "
-                + dataset_config
-                + ", "
-                + tgt
-                + "-"
-                + src
-            )
+    dataset = try_load_dataset_config(dataset_name, dataset_config)
 
     def process_split(ds):
         _dataset = []
@@ -160,18 +143,54 @@ def load_news_commentary_dataset(
     dataset_name,
     dataset_config,
 ):
-    return load_translation_dataset(
-        dataset_name,
-        dataset_config=dataset_config,
-    )
+    src, tgt = dataset_config.split("-")
+
+    dataset = try_load_dataset_config(dataset_name, dataset_config)
+
+    def process_split(ds):
+        _dataset = []
+        for element in ds:
+            _dataset.append((element[src], element[tgt]))
+        return _dataset
+
+    all = process_split(dataset["train"]["translation"])
+
+    # train, val and test sizes:
+    train_size = int(len(all) * 0.8)
+    val_size = int(len(all) * 0.1)
+    test_size = len(all) - train_size - val_size
+
+    train = all[:train_size]
+    val = all[train_size : train_size + val_size]
+    test = all[train_size + val_size :]
+
+    return {"train": train, "validation": val, "test": test}
 
 
 # load emea from load_translation_dataset:
 def load_emea_dataset(dataset_name, dataset_config):
-    return load_translation_dataset(
-        dataset_name,
-        dataset_config=dataset_config,
-    )
+    src, tgt = dataset_config.split("-")
+
+    dataset = try_load_dataset_config(dataset_name, dataset_config)
+
+    def process_split(ds):
+        _dataset = []
+        for element in ds:
+            _dataset.append((element[src], element[tgt]))
+        return _dataset
+
+    all = process_split(dataset["train"]["translation"])
+
+    # train, val and test sizes:
+    train_size = int(len(all) * 0.8)
+    val_size = int(len(all) * 0.1)
+    test_size = len(all) - train_size - val_size
+
+    train = all[:train_size]
+    val = all[train_size : train_size + val_size]
+    test = all[train_size + val_size :]
+
+    return {"train": train, "validation": val, "test": test}
 
 
 def load_europarl_dataset(dataset_name, dataset_config):
@@ -197,6 +216,8 @@ def load_europarl_dataset(dataset_name, dataset_config):
                 + lang1
             )
 
+    dataset = dataset["train"]
+
     if switch_lang:
         _dataset = [(d["translation"][lang2], d["translation"][lang1]) for d in dataset]
     else:
@@ -220,6 +241,7 @@ def load_amazon_reviews_multi(dataset_name, dataset_config):
     train = [(d["review_title"], d["review_title"]) for d in dataset["train"]]
     val = [(d["review_title"], d["review_title"]) for d in dataset["validation"]]
     test = [(d["review_title"], d["review_title"]) for d in dataset["test"]]
+
     return {"train": train, "validation": val, "test": test}
 
 

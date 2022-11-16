@@ -1,6 +1,7 @@
 from collections import defaultdict
 from typing import List, Dict
 
+from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
 
 from Todd import FilterType
@@ -65,3 +66,30 @@ def evaluate_dataloader(
     sequences_scores = output.sequences_scores.tolist()
 
     records["likelyhood"].extend(sequences_scores)
+
+
+def try_load_dataset_config(dataset_name: str, dataset_config: str) -> DatasetDict:
+    src, tgt = dataset_config.split("-")
+
+    # Try to load the dataset from the datasets library with one config or its permutation
+    try:
+        dataset = load_dataset(dataset_name, dataset_config)
+    except ValueError:
+        dataset_config = tgt + "-" + src
+        src, tgt = dataset_config.split("-")
+
+        try:
+            dataset = load_dataset(
+                dataset_name, dataset_config, ignore_verifications=True
+            )
+        except ValueError:
+            raise ValueError(
+                "Invalid dataset config. None of the following configs are valid: "
+                + dataset_config
+                + ", "
+                + tgt
+                + "-"
+                + src
+            )
+
+    return dataset
