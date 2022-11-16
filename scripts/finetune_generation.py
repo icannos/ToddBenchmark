@@ -1,16 +1,14 @@
-import transformers
+import argparse
+
+import numpy as np
+import torch
+from datasets import load_metric
 from transformers import (
-    AutoTokenizer,
-    AutoModelForSeq2SeqLM,
     Trainer,
     TrainingArguments,
 )
-from datasets import load_metric
-import torch
-import numpy as np
-import argparse
 
-from toddbenchmark.generation_data import prep_dataset, prep_model, prep_inputs
+from toddbenchmark.generation_data import prep_dataset, prep_model
 
 
 def parse_args():
