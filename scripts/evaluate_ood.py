@@ -6,7 +6,7 @@ import torch
 from datasets import load_metric
 from torch.utils.data import DataLoader
 
-from configs.datasets_configs import DATASETS_CONFIGS
+from toddbenchmark.datasets_configs import DATASETS_CONFIGS
 from toddbenchmark.generation_data import prep_dataset, prep_model
 from toddbenchmark.utils import prepare_detectors
 
@@ -15,7 +15,7 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
     parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-en-de")
 
-    parser.add_argument("--in_config", type=str, default="wmt16_de_en")
+    parser.add_argument("--in_config", type=str, default="wmt16_de_en", choices=DATASETS_CONFIGS.keys())
     parser.add_argument(
         "--out_config", type=str, nargs="+", default="tatoeba_mt_deu_eng"
     )
@@ -47,6 +47,7 @@ def load_requested_datasets(config_names: List[str], tokenizer):
                 f"Invalid dataset config name: {config_name}. "
                 f"Available configs: {DATASETS_CONFIGS.keys()}"
             )
+
         config = DATASETS_CONFIGS[config_name]
         train_dataset, validation_dataset, test_dataset = prep_dataset(
             config["dataset_name"],

@@ -1,7 +1,5 @@
-from configs.datasets_configs import DATASETS_CONFIGS
+from datasets_configs import DATASETS_CONFIGS
 from toddbenchmark.generation_data import prep_dataset, prep_model
-from datasets import load_dataset
-
 
 if __name__ == "__main__":
     model, tokenizer = prep_model("t5-small")
