@@ -7,8 +7,37 @@ from torch.utils.data import DataLoader
 from Todd import FilterType
 
 
-def prepare_detectors(model, validation_dataset) -> List[FilterType]:
-    return []
+def prepare_detectors(detectors : List[FilterType], model, loader : DataLoader) -> List[FilterType]:
+    '''
+    Fit the detectors on the behavior of the model on the (in) validation set
+    :param detectors: List of detectors to fit
+    :param model: Model to evaluate
+    :param loader: Dataloader (reference set) to evaluate the model on
+    :return: List of fitted detectors
+    '''
+
+    for batch in loader:
+        output = model.generate(
+            input_ids=batch["input_ids"],
+            attention_mask=batch["attention_mask"],
+            max_length=100,
+            num_beams=4,
+            num_return_sequences=4,
+            early_stopping=True,
+            return_dict_in_generate=True,
+            output_scores=True,
+            output_hidden_states=True,
+        )
+
+        for detector in detectors:
+            detector.accumulate(output)
+
+    for detector in detectors:
+        detector.fit()
+
+    return detectors
+
+
 
 
 def evaluate_batch(
