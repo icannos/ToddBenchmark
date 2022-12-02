@@ -1,29 +1,38 @@
 import argparse
+from pathlib import Path
 from typing import List
 
 import numpy as np
 import torch
 from datasets import load_metric
+import json
+
 from torch.utils.data import DataLoader
 
 from Todd import FilterType
-from toddbenchmark.datasets_configs import DATASETS_CONFIGS
+from toddbenchmark.datasets_configs import DATASETS_CONFIGS, load_requested_dataset
 from toddbenchmark.generation_data import prep_dataset, prep_model
-from toddbenchmark.utils import prepare_detectors
+from toddbenchmark.utils import prepare_detectors, evaluate_dataloader, mk_file_name
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
     parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-en-de")
 
+    config_choices: List[str] = list(DATASETS_CONFIGS.keys())
+
     parser.add_argument(
         "--in_config",
         type=str,
         default="wmt16_de_en",
-        choices=list(DATASETS_CONFIGS.keys()),
+        choices=config_choices,
     )
     parser.add_argument(
-        "--out_config", type=str, nargs="+", default="tatoeba_mt_deu_eng"
+        "--out_configs",
+        type=str,
+        nargs="+",
+        default="tatoeba_mt_deu_eng",
+        choices=config_choices,
     )
 
     parser.add_argument("--batch_size", type=int, default=16)
@@ -36,58 +45,10 @@ def parse_args():
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
     parser.add_argument("--output_dir", type=str, default="output")
-    parser.add_argument("--output_file", type=str, default="output.txt")
     return parser.parse_args()
 
 
-def load_requested_dataset(config_name: str, tokenizer):
-    def tokenize_function(examples):
-        return tokenizer(
-            text=examples["source"], text_target=examples["target"], truncation=True
-        )
-
-    datasets = {}
-
-    if config_name not in DATASETS_CONFIGS:
-        raise ValueError(
-            f"Invalid dataset config name: {config_name}. "
-            f"Available configs: {DATASETS_CONFIGS.keys()}"
-        )
-
-    config = DATASETS_CONFIGS[config_name]
-    train_dataset, validation_dataset, test_dataset = prep_dataset(
-        config["dataset_name"],
-        config["dataset_config"],
-        tokenizer,
-    )
-
-    validation_dataset = validation_dataset.map(
-        tokenize_function,
-        batched=True,
-        num_proc=4,
-    )
-
-    test_dataset = test_dataset.map(
-        tokenize_function,
-        batched=True,
-        num_proc=4,
-    )
-
-    validation_loader = torch.utils.data.DataLoader(
-        validation_dataset,
-        batch_size=config["batch_size"],
-        shuffle=False,
-        num_workers=4,
-    )
-
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset,
-        batch_size=config["batch_size"],
-        shuffle=False,
-        num_workers=4,
-    )
-
-    return validation_loader, test_loader
+detectors: List[FilterType] = []
 
 
 if __name__ == "__main__":
@@ -110,25 +71,73 @@ if __name__ == "__main__":
 
     model, tokenizer = prep_model(args.model_name)
 
-    _, validation_dataset, test_dataset = prep_dataset(
-        args.dataset_name, args.dataset_config, tokenizer
-    )
-
-    detectors: List[FilterType] = []
-
-    validation_loader = torch.utils.data.DataLoader(
-        validation_dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=4,
+    # Load the reference set
+    _, validation_loader, test_loader = load_requested_dataset(
+        args.in_config, tokenizer
     )
 
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader)
 
-    test_loader = torch.utils.data.DataLoader(
-        test_dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        num_workers=4,
+    # Evaluate the model on the (in) validation set:
+    print("Evaluating on the in-distribution validation set")
+    records = evaluate_dataloader(
+        model,
+        validation_loader,
+        tokenizer,
+        detectors,
+        num_beams=4,
+        num_return_sequences=4,
+        max_length=150,
     )
+
+    inval_ds_scores_path = Path(args.output_dir) / (
+        "validation_scores/"
+        + mk_file_name(args.model_name, args.in_config, args.in_config)
+    )
+
+    with open(inval_ds_scores_path, "w") as f:
+        json.dump(records, f)
+
+    # Evaluate the model on the (in) test set
+    print("Evaluating on the in-distribution test set")
+    records = evaluate_dataloader(
+        model,
+        test_loader,
+        tokenizer,
+        detectors,
+        num_beams=4,
+        num_return_sequences=4,
+        max_length=150,
+    )
+
+    in_ds_scores_path = Path(args.output_dir) / (
+        "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
+    )
+
+    with open(in_ds_scores_path, "w") as f:
+        json.dump(records, f)
+
+    print("BEGIN OOD EVALUATION")
+    for out_config in args.out_configs:
+        # Load the out-of-distribution set
+        _, _, test_loader = load_requested_dataset(out_config, tokenizer)
+
+        # Evaluate the model on the (out) test set
+        print("Evaluating on the out-of-distribution test set")
+        records = evaluate_dataloader(
+            model,
+            test_loader,
+            tokenizer,
+            detectors,
+            num_beams=4,
+            num_return_sequences=4,
+            max_length=150,
+        )
+
+        out_ds_scores_path = Path(args.output_dir) / (
+            "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
+        )
+
+        with open(out_ds_scores_path, "w") as f:
+            json.dump(records, f)
