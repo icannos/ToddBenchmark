@@ -1,17 +1,15 @@
 import argparse
+import json
 from pathlib import Path
 from typing import List
 
 import numpy as np
 import torch
 from datasets import load_metric
-import json
-
-from torch.utils.data import DataLoader
 
 from Todd import FilterType
 from toddbenchmark.datasets_configs import DATASETS_CONFIGS, load_requested_dataset
-from toddbenchmark.generation_data import prep_dataset, prep_model
+from toddbenchmark.generation_data import prep_model
 from toddbenchmark.utils import prepare_detectors, evaluate_dataloader, mk_file_name
 
 
