@@ -47,7 +47,13 @@ DATASETS_CONFIGS["tatoeba_mt_cat_eng"] = BASE_CONFIG | {
 }
 
 
-def load_requested_dataset(config_name: str, tokenizer):
+def load_requested_dataset(
+    config_name: str,
+    tokenizer,
+    train_size: int = 3000,
+    validation_size: int = 3000,
+    test_size: int = 3000,
+):
     def tokenize_function(examples):
         return tokenizer(
             text=examples["source"], text_target=examples["target"], truncation=True
@@ -66,6 +72,9 @@ def load_requested_dataset(config_name: str, tokenizer):
         config["dataset_name"],
         config["dataset_config"],
         tokenizer,
+        train_max_size=train_size,
+        validation_max_size=validation_size,
+        test_max_size=test_size,
     )
 
     validation_dataset = validation_dataset.map(

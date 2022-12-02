@@ -39,6 +39,20 @@ def parse_args():
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)
 
+    # Dataset max sizes
+    parser.add_argument(
+        "--validation_size",
+        type=int,
+        default=3000,
+        help="Max size of validation set used as reference to fit detectors",
+    )
+    parser.add_argument(
+        "--test_size",
+        type=int,
+        default=3000,
+        help="Max size of test set to evaluate detectors",
+    )
+
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
@@ -71,7 +85,7 @@ if __name__ == "__main__":
 
     # Load the reference set
     _, validation_loader, test_loader = load_requested_dataset(
-        args.in_config, tokenizer
+        args.in_config, tokenizer, 0, args.validation_size, args.test_size
     )
 
     # Fit the detectors on the behavior of the model on the (in) validation set
@@ -119,7 +133,9 @@ if __name__ == "__main__":
     print("BEGIN OOD EVALUATION")
     for out_config in args.out_configs:
         # Load the out-of-distribution set
-        _, _, test_loader = load_requested_dataset(out_config, tokenizer)
+        _, _, test_loader = load_requested_dataset(
+            out_config, tokenizer, 0, 0, args.test_size
+        )
 
         # Evaluate the model on the (out) test set
         print("Evaluating on the out-of-distribution test set")

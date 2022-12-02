@@ -249,6 +249,9 @@ def prep_dataset(
     dataset_name,
     dataset_config,
     tokenizer,
+    train_max_size,
+    validation_max_size,
+    test_max_size,
 ):
     """
 
@@ -315,9 +318,9 @@ def prep_dataset(
         ds = dataset[split]
         return [{"source": s, "target": t} for s, t in ds]
 
-    train = GenerationDataset(to_dict(dataset, "train"))
-    val = GenerationDataset(to_dict(dataset, "validation"))
-    test = GenerationDataset(to_dict(dataset, "test"))
+    train = GenerationDataset(to_dict(dataset, "train")[:train_max_size])
+    val = GenerationDataset(to_dict(dataset, "validation")[:validation_max_size])
+    test = GenerationDataset(to_dict(dataset, "test")[:test_max_size])
 
     return train, val, test
 
