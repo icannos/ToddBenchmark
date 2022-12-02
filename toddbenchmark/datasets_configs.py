@@ -58,7 +58,7 @@ def load_requested_dataset(config_name: str, tokenizer):
     if config_name not in DATASETS_CONFIGS:
         raise ValueError(
             f"Invalid dataset config name: {config_name}. "
-            f"Available configs: {DATASETS_CONFIGS.keys()}"
+            f"Available configs: {list(DATASETS_CONFIGS.keys())}"
         )
 
     config = DATASETS_CONFIGS[config_name]
@@ -108,3 +108,5 @@ if __name__ == "__main__":
     print("Available datasets configs:")
     for k, v in DATASETS_CONFIGS.items():
         print(k)
+        print(v)
+        print("===========")
