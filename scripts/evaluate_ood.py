@@ -16,7 +16,12 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
     parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-en-de")
 
-    parser.add_argument("--in_config", type=str, default="wmt16_de_en", choices=DATASETS_CONFIGS.keys())
+    parser.add_argument(
+        "--in_config",
+        type=str,
+        default="wmt16_de_en",
+        choices=list(DATASETS_CONFIGS.keys()),
+    )
     parser.add_argument(
         "--out_config", type=str, nargs="+", default="tatoeba_mt_deu_eng"
     )
@@ -35,45 +40,54 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_requested_datasets(config_names: List[str], tokenizer):
+def load_requested_dataset(config_name: str, tokenizer):
     def tokenize_function(examples):
         return tokenizer(
             text=examples["source"], text_target=examples["target"], truncation=True
         )
 
     datasets = {}
-    for config_name in config_names:
-        if config_name not in DATASETS_CONFIGS:
-            raise ValueError(
-                f"Invalid dataset config name: {config_name}. "
-                f"Available configs: {DATASETS_CONFIGS.keys()}"
-            )
 
-        config = DATASETS_CONFIGS[config_name]
-        train_dataset, validation_dataset, test_dataset = prep_dataset(
-            config["dataset_name"],
-            config["dataset_config"],
-            tokenizer,
+    if config_name not in DATASETS_CONFIGS:
+        raise ValueError(
+            f"Invalid dataset config name: {config_name}. "
+            f"Available configs: {DATASETS_CONFIGS.keys()}"
         )
 
-        validation_dataset = validation_dataset.map(
-            tokenize_function,
-            batched=True,
-            num_proc=4,
-        )
+    config = DATASETS_CONFIGS[config_name]
+    train_dataset, validation_dataset, test_dataset = prep_dataset(
+        config["dataset_name"],
+        config["dataset_config"],
+        tokenizer,
+    )
 
-        test_dataset = test_dataset.map(
-            tokenize_function,
-            batched=True,
-            num_proc=4,
-        )
+    validation_dataset = validation_dataset.map(
+        tokenize_function,
+        batched=True,
+        num_proc=4,
+    )
 
-        validation_loader = torch.utils.data.DataLoader(
-            validation_dataset,
-            batch_size=args.batch_size,
-            shuffle=False,
-            num_workers=4,
-        )
+    test_dataset = test_dataset.map(
+        tokenize_function,
+        batched=True,
+        num_proc=4,
+    )
+
+    validation_loader = torch.utils.data.DataLoader(
+        validation_dataset,
+        batch_size=config["batch_size"],
+        shuffle=False,
+        num_workers=4,
+    )
+
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=config["batch_size"],
+        shuffle=False,
+        num_workers=4,
+    )
+
+    return validation_loader, test_loader
 
 
 if __name__ == "__main__":
@@ -100,7 +114,7 @@ if __name__ == "__main__":
         args.dataset_name, args.dataset_config, tokenizer
     )
 
-    detectors : List[FilterType] = []
+    detectors: List[FilterType] = []
 
     validation_loader = torch.utils.data.DataLoader(
         validation_dataset,
@@ -108,6 +122,7 @@ if __name__ == "__main__":
         shuffle=False,
         num_workers=4,
     )
+
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader)
 
