@@ -4,7 +4,6 @@ DATASETS_CONFIGS: Dict[Dict] = {}
 
 BASE_CONFIG = {
     "batch_size": 8,
-    "max_length": 100,
 }
 
 # Datasets configs with english (en) as target language:
