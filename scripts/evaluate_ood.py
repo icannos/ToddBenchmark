@@ -107,6 +107,7 @@ if __name__ == "__main__":
         "validation_scores/"
         + mk_file_name(args.model_name, args.in_config, args.in_config)
     )
+    inval_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(inval_ds_scores_path, "w") as f:
         json.dump(records, f)
@@ -126,6 +127,7 @@ if __name__ == "__main__":
     in_ds_scores_path = Path(args.output_dir) / (
         "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
     )
+    in_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
     with open(in_ds_scores_path, "w") as f:
         json.dump(records, f)
@@ -152,6 +154,7 @@ if __name__ == "__main__":
         out_ds_scores_path = Path(args.output_dir) / (
             "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
         )
+        out_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
         with open(out_ds_scores_path, "w") as f:
             json.dump(records, f)

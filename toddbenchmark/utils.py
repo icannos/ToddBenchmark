@@ -1,4 +1,4 @@
-from typing import List, Dict
+from typing import List, Dict, Any
 
 import torch
 from datasets import load_dataset, DatasetDict
@@ -40,11 +40,28 @@ def prepare_detectors(
     return detectors
 
 
+def flatten_dict(dict):
+    """
+    Flatten a dictionary
+    :param dict: Dictionary to flatten
+    :return: Flattened dictionary
+    """
+    result = {}
+    for key, value in dict.items():
+        if isinstance(value, dict):
+            result.update({f"{key}+{k}": v for k, v in flatten_dict(value)})
+        else:
+            result[key] = value
+
+    return result
+
+
 def evaluate_batch(output, detectors: List[FilterType]) -> Dict[str, torch.Tensor]:
 
     scores = {}
     for detector in detectors:
-        scores[f"{detector}"] = detector.compute_scores_benchmark(output)
+        s = detector.compute_scores_benchmark(output)
+        scores |= flatten_dict(s)
 
     return scores
 
