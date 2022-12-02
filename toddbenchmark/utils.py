@@ -61,6 +61,7 @@ def evaluate_dataloader(
 
     # Initialize the scores dictionary
     records: Dict[str, List] = {f"{detector}": [] for detector in detectors}
+    records["likelihood"] = []
 
     for batch_idx, batch in enumerate(data_loader):
         x = batch["input_ids"]
@@ -92,7 +93,7 @@ def evaluate_dataloader(
         )
 
         sequences_scores = output.sequences_scores.tolist()
-        records["likelyhood"].extend(sequences_scores)
+        records["likelihood"].extend(sequences_scores)
 
     return records
 
