@@ -5,11 +5,16 @@ from typing import List
 
 import numpy as np
 import torch
+from tqdm import tqdm
 from datasets import load_metric
 
-from Todd import FilterType
-from toddbenchmark.datasets_configs import DATASETS_CONFIGS, load_requested_dataset
+from Todd import FilterType, MahalanobisFilter
+from toddbenchmark.generation_datasets_configs import (
+    DATASETS_CONFIGS,
+    load_requested_dataset,
+)
 from toddbenchmark.generation_data import prep_model
+
 from toddbenchmark.utils import prepare_detectors, evaluate_dataloader, mk_file_name
 
 
@@ -22,18 +27,18 @@ def parse_args():
     parser.add_argument(
         "--in_config",
         type=str,
-        default="wmt16_de_en",
+        default="tatoeba_mt_deu_eng",
         choices=config_choices,
     )
     parser.add_argument(
         "--out_configs",
         type=str,
         nargs="+",
-        default="tatoeba_mt_deu_eng",
+        default=["wmt16_de_en"],
         choices=config_choices,
     )
 
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--num_return_sequences", type=int, default=1)
 
     parser.add_argument("--max_length", type=int, default=150)
@@ -43,13 +48,13 @@ def parse_args():
     parser.add_argument(
         "--validation_size",
         type=int,
-        default=3000,
+        default=30,
         help="Max size of validation set used as reference to fit detectors",
     )
     parser.add_argument(
         "--test_size",
         type=int,
-        default=3000,
+        default=30,
         help="Max size of test set to evaluate detectors",
     )
 
@@ -60,26 +65,11 @@ def parse_args():
     return parser.parse_args()
 
 
-detectors: List[FilterType] = []
+detectors: List[FilterType] = [MahalanobisFilter(threshold=0.5, layers=[-1])]
 
 
 if __name__ == "__main__":
     args = parse_args()
-
-    metrics = {
-        "Accuracy": load_metric("accuracy"),
-        "BLEU": load_metric("sacrebleu"),
-        "rouge": load_metric("rouge"),
-    }
-
-    def compute_metrics(eval_pred):
-        logits, labels = eval_pred
-        predictions = np.argmax(logits, axis=-1)
-
-        return {
-            k: m.compute(predictions=predictions, references=labels)
-            for k, m in metrics.items()
-        }
 
     model, tokenizer = prep_model(args.model_name)
 
@@ -133,7 +123,7 @@ if __name__ == "__main__":
         json.dump(records, f)
 
     print("BEGIN OOD EVALUATION")
-    for out_config in args.out_configs:
+    for out_config in tqdm(args.out_configs):
         # Load the out-of-distribution set
         _, _, test_loader = load_requested_dataset(
             out_config, tokenizer, 0, 0, args.test_size
@@ -146,8 +136,8 @@ if __name__ == "__main__":
             test_loader,
             tokenizer,
             detectors,
-            num_beams=4,
-            num_return_sequences=4,
+            num_beams=2,
+            num_return_sequences=2,
             max_length=150,
         )
 

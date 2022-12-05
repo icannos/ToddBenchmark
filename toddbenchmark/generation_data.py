@@ -312,7 +312,7 @@ def prep_dataset(
             dataset_config,
         )
     else:
-        dataset = None
+        raise ValueError("Dataset not supported")
 
     def to_dict(dataset, split):
         ds = dataset[split]
