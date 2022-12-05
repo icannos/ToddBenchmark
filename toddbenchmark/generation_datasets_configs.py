@@ -2,7 +2,7 @@ from typing import Dict
 
 import torch
 from torch.utils.data import DataLoader
-from generation_data import prep_dataset
+from .generation_data import prep_dataset
 
 DATASETS_CONFIGS: Dict[str, Dict] = {}
 
