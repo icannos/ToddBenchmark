@@ -10,7 +10,7 @@ authors = [
     { name = "Maxime Darrin", email = "maxime.darrin@outlook.com" },
 ]
 description = "A benchmark for Text Out of Distribution detection methods.It is built on top of the HuggingFace Transformers/datasets libraries. It provides benchmarks tailored for text OOD detection."
-readme = "README.md"
+readme = "Readme.md"
 requires-python = ">=3.7"
 classifiers = [
     "Programming Language :: Python :: 3",
