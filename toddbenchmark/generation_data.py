@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from datasets import load_dataset
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
@@ -252,7 +254,7 @@ def prep_dataset(
     train_max_size,
     validation_max_size,
     test_max_size,
-):
+) -> Tuple[Dataset, Dataset, Dataset]:
     """
 
     :param dataset_name:
