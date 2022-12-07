@@ -618,9 +618,15 @@ def load_sst2():
     return datasets
 
 
-def prep_model(model_name):
+def prep_model(model_name, config: Optional[Dict] = None):
+
+    if config is None:
+        config = {"labels": 2}
+
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_name, num_labels=config["label"]
+    )
 
     return model, tokenizer
 
