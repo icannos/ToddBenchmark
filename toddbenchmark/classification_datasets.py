@@ -1,271 +1,104 @@
-import os
 import random
 
-import datasets as ds
-import pandas as pd
 from datasets import load_dataset, Dataset
-from tqdm import tqdm
 
-ds.logging.set_verbosity(ds.logging.ERROR)
-# TODO : ajouter HANS/C-IMDB from NYU
-# TODO : benchmak others
-
-task_to_labels = {
-    "tweet_eval": 20,
-    "amazon_reviews_multi": 30,
-    "go_emotions": 28,
-    "sst2": 2,
-    "imdb": 2,
-    "20ng": 20,
-    "trec": 6,
-    "mnli": 3,
-    "snli": 3,
-    "rte": 2,
-    "yelp": 6,
-    "b77": 77,
-    "massive": 60,
-    "trec_fine": 50,
-    "emotion": 6,
-    "twitterfin": 3,
-    "fr_cls": 2,
-    "fr_xnli": 3,
-    "fr_pawsx": 2,
-    "fr_book_reviews": 3,
-    "fr_allocine": 2,
-    "fr_xstance": 2,
-    "fr_swiss_judgement": 2,
-    "fr_tweet_sentiment": 3,
-    # es
-    "es_tweet_sentiment": 3,
-    "es_sst2": 2,
-    "es_pawsx": 2,
-    "es_cine": 5,
-    "es_tweet_inde": 3,
-    # de
-    "de_xstance": 2,
-    "de_swiss_judgement": 2,
-    "de_lexarg": 4,
-    "de_tweet_sentiment": 3,
-    "de_pawsx": 2,
-}
-
-BASE_DATASET = [
-    "amazon_reviews_multi",
-    "go_emotions",
-    "sst2",
-    "imdb",
-    "20ng",
-    "trec",
-    "mnli",
-    "snli",
-    "rte",
-    "b77",
-    "massive",
-    "trec_fine",
-    "emotion",
-    # "twitterfin",
-]
-
-FR_DATASETS = [
-    "fr_cls",
-    "fr_xnli",
-    "fr_pawsx",
-    # "fr_book_reviews",
-    "fr_allocine",
-    "fr_xstance",
-    "fr_swiss_judgement",
-    "fr_tweet_sentiment",
-]
-
-ES_DATASETS = [
-    "es_tweet_sentiment",
-    # "es_sst2",
-    "es_pawsx",
-    "es_cine",
-    "es_tweet_inde",
-]
-
-DE_DATASETS = [
-    "de_xstance",
-    "de_swiss_judgement",
-    # "de_lexarg",
-    "de_tweet_sentiment",
-    "de_pawsx",
-]
-
-task_to_metric = {
-    "tweet_eval": "mnli",
-    "amazon_reviews_multi": "mnli",
-    "go_emotions": "mnli",
-    "sst2": "sst2",
-    "imdb": "sst2",
-    "20ng": "mnli",
-    "trec": "mnli",
-    "b77": "mnli",
-    "massive": "mnli",
-    "trec_fine": "mnli",
-    "twitterfin": "mnli",
-    "fr_cls": "mnli",
-    "fr_xnli": "mnli",
-    "fr_pawsx": "mnli",
-    "fr_book_reviews": "mnli",
-    "fr_allocine": "mnli",
-    "emotion": "mnli",
-    "fr_xstance": "mnli",
-    "fr_swiss_judgement": "mnli",
-    "fr_tweet_sentiment": "mnli",
-    # es
-    "es_tweet_sentiment": "mnli",
-    "es_sst2": "mnli",
-    "es_pawsx": "mnli",
-    "es_cine": "mnli",
-    "es_tweet_inde": "mnli",
-    # de
-    "de_xstance": "mnli",
-    "de_swiss_judgement": "mnli",
-    "de_lexarg": "mnli",
-    "de_tweet_sentiment": "mnli",
-    "de_pawsx": "mnli",
-}
-task_to_keys = {
-    "tweet_eval": ("text", None),
-    "amazon_reviews_multi": ("review_body", None),
-    "go_emotions": ("text", None),
-    "mnli": ("premise", "hypothesis"),
-    "snli": ("premise", "hypothesis"),
-    "rte": ("sentence1", "sentence2"),
-    "sst2": ("sentence", None),
-    "20ng": ("text_scr", None),
-    "trec": ("text_scr", None),
-    "trec_fine": ("text_scr", None),
-    "imdb": ("text", None),
-    "yelp": ("text", None),
-    "wmt16": ("en", None),
-    "multi30k": ("text_scr", None),
-    "zh_yahoo_answers_fm": ("data", None),
-    "zh_yahoo_agnews_five": ("data", None),
-    "zh_agnews_fm": ("data", None),
-    "zh_agnews_fl": ("data", None),
-    "zh_agnews_ext": ("data", None),
-    "zh_20news_6s": ("data", None),
-    "zh_yahoo_answers_fm_ood": ("data", None),
-    "zh_yahoo_agnews_five_ood": ("data", None),
-    "zh_agnews_fm_ood": ("data", None),
-    "zh_agnews_fl_ood": ("data", None),
-    "zh_agnews_ext_ood": ("data", None),
-    "zh_20news_6s_ood": ("data", None),
-    "b77": ("text", None),
-    "massive": ("text", None),
-    "emotion": ("text", None),
-    "twitterfin": ("text", None),
-    # French
-    "fr_allocine": ("text", None),
-    "fr_book_reviews": ("text", None),
-    "fr_xnli": ("text", None),
-    "fr_cls": ("text", None),
-    "fr_pawsx": ("text", None),
-    "fr_xstance": ("text", None),
-    "fr_swiss_judgement": ("text", None),
-    "fr_tweet_sentiment": ("text", None),
-    # es
-    "es_tweet_sentiment": ("text", None),
-    "es_sst2": ("text", None),
-    "es_pawsx": ("text", None),
-    "es_cine": ("text", None),
-    "es_tweet_inde": ("text", None),
-    # de
-    "de_xstance": ("text", None),
-    "de_swiss_judgement": ("text", None),
-    "de_lexarg": ("text", None),
-    "de_tweet_sentiment": ("text", None),
-    "de_pawsx": ("text", None),
-}
+from .classification_datasets_configs import ALL_CONFIGS
 
 
-def load(task_name, tokenizer, max_seq_length=256, language=None):
-    sentence1_key, sentence2_key = task_to_keys[task_name]
-    print("Loading {}".format(task_name))
-    label_set = None
-    if task_name in ("mnli", "rte"):
-        datasets = load_glue(task_name)
-    elif task_name in ("snli",):
+class ClassificationDataset(Dataset):
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __getitem__(self, index):
+        return self.dataset[index]
+
+    def map(self, fn):
+        self.dataset = [x | fn(x) for x in self.dataset]
+        return self
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __repr__(self):
+        return f"GenerationDataset(len={len(self)}, features={self.dataset[0].keys()})"
+
+
+def load_requested_config(config_name, tokenizer):
+    config = ALL_CONFIGS[config_name]
+    sentence1_key, sentence2_key = config["keys"]
+
+    datasets = None
+
+    if config_name in ("mnli", "rte"):
+        datasets = load_glue(config_name)
+    elif config_name in ("snli",):
         datasets = load_snli()
-    elif task_name == "tweet_eval":
+    elif config_name == "tweet_eval":
         datasets = load_tweet_eval()
-    elif task_name == "amazon_reviews_multi":
+    elif config_name == "amazon_reviews_multi":
         datasets = load_amazon_reviews_multi(language)
-    elif task_name == "go_emotions":
+    elif config_name == "go_emotions":
         datasets = load_go_emotions()
-    elif task_name == "sst2":
+    elif config_name == "sst2":
         datasets = load_sst2()
-    elif task_name == "20ng":
+    elif config_name == "20ng":
         datasets = load_20ng()
-    elif task_name == "trec":
+    elif config_name == "trec":
         datasets = load_trec()
-    elif task_name == "trec_fine":
+    elif config_name == "trec_fine":
         datasets = load_trec(labels="label-fine")
-    elif task_name == "imdb":
+    elif config_name == "imdb":
         datasets = load_imdb()
-    elif task_name == "yelp":
+    elif config_name == "yelp":
         datasets = load_yelp()
-    elif task_name == "wmt16":
-        datasets = load_wmt16()
-    elif task_name == "multi30k":
-        datasets = load_multi30k()
-    elif task_name == "b77":
+    elif config_name == "b77":
         datasets = load_b77()
-    elif task_name == "massive":
+    elif config_name == "massive":
         datasets = load_massive()
-    elif task_name == "emotion":
+    elif config_name == "emotion":
         datasets = load_emotion()
-    elif task_name == "twitterfin":
+    elif config_name == "twitterfin":
         datasets = load_twitterfin()
-    elif "zh" in task_name:
-        datasets = load_zh(task_name)
-        suffix = "ood" if "ood" in task_name else "id"
-        label_set = get_labels_zh(task_name, suffix)
-
-    elif task_name in ("fr_xnli", "fr_pawsx", "fr_cls"):
-        datasets = load_flue(task_name)
-    elif task_name == "fr_book_reviews":
+    elif config_name in ("fr_xnli", "fr_pawsx", "fr_cls"):
+        datasets = load_flue(config_name)
+    elif config_name == "fr_book_reviews":
         datasets = load_fr_book_reviews()
-    elif task_name == "fr_allocine":
+    elif config_name == "fr_allocine":
         datasets = load_fr_allocine()
-    elif task_name in ("fr_xstance", "es_xstance", "de_xstance"):
-        datasets = load_xstance(task_name)
-    elif task_name in ("fr_swiss_judgement", "de_swiss_judgement"):
-        datasets = load_swiss_judgement(task_name)
-    elif task_name in (
+    elif config_name in ("fr_xstance", "es_xstance", "de_xstance"):
+        datasets = load_xstance(config_name)
+    elif config_name in ("fr_swiss_judgement", "de_swiss_judgement"):
+        datasets = load_swiss_judgement(config_name)
+    elif config_name in (
         "fr_tweet_sentiment",
         "es_tweet_sentiment",
         "de_tweet_sentiment",
     ):
-        datasets = load_tweet_multil_sentiments(task_name)
-    elif task_name in ("fr_pawsx", "es_pawsx", "de_pawsx"):
-        datasets = load_pawsx(task_name)
-    elif task_name == "de_lexarg":
-        datasets = load_german_arg_mining(task_name)
-    elif task_name == "es_tweet_inde":
-        datasets = load_twitter_catinde(task_name)
-    elif task_name == "es_cine":
-        datasets = load_muchocine(task_name)
-    elif task_name == "es_sst2":
-        datasets = load_sst2_es(task_name)
+        datasets = load_tweet_multil_sentiments(config_name)
+    elif config_name in ("fr_pawsx", "es_pawsx", "de_pawsx"):
+        datasets = load_pawsx(config_name)
+    elif config_name == "de_lexarg":
+        datasets = load_german_arg_mining(config_name)
+    elif config_name == "es_tweet_inde":
+        datasets = load_twitter_catinde(config_name)
+    elif config_name == "es_cine":
+        datasets = load_muchocine(config_name)
+    elif config_name == "es_sst2":
+        datasets = load_sst2_es(config_name)
+    else:
+        raise ValueError(f"Unknown dataset {config_name}")
 
     def preprocess_function(examples):
         inputs = (
-            (examples[sentence1_key],)
+            examples[sentence1_key]
             if sentence2_key is None
-            else (examples[sentence1_key] + " " + examples[sentence2_key],)
+            else examples[sentence1_key] + " " + examples[sentence2_key]
         )
-        result = tokenizer(*inputs, max_length=max_seq_length, truncation=True)
-        if label_set is None:
-            result["labels"] = examples["label"] if "label" in examples else 0
-        else:
-            if examples["label"] not in label_set:
-                result["labels"] = -1
-            else:
-                result["labels"] = label_set.index(examples["label"])
+
+        text = inputs[0]
+
+        result["labels"] = examples["label"] if "label" in examples else 0
+
         return result
 
     train_dataset = (
@@ -281,6 +114,11 @@ def load(task_name, tokenizer, max_seq_length=256, language=None):
     test_dataset = (
         list(map(preprocess_function, datasets["test"])) if "test" in datasets else None
     )
+
+    train_dataset = ClassificationDataset(train_dataset)
+    dev_dataset = ClassificationDataset(dev_dataset)
+    test_dataset = ClassificationDataset(test_dataset)
+
     return train_dataset, dev_dataset, test_dataset
 
 
@@ -526,32 +364,6 @@ def load_massive(lang="en-US"):
     test_dataset = [{"text": x["utt"], "label": x["intent"]} for x in datasets["test"]]
 
     return {"train": train_dataset, "validation": dev_dataset, "test": test_dataset}
-
-
-def load_zh(task_name):
-    ood = False
-    if "ood" in task_name:
-        ood = True
-    task_name_folder = task_name.replace("zh_", "").replace("_ood", "")
-    datasets_dic = {}
-    for split in ["train", "test", "dev"]:
-        if ood:
-            suffix = (
-                "{}.csv".format(split)
-                if split == "train"
-                else "ood_{}.csv".format(split)
-            )
-        else:
-            suffix = (
-                "{}.csv".format(split)
-                if split == "train"
-                else "id_{}.csv".format(split)
-            )
-        df = pd.read_csv(os.path.join("data/zh", task_name_folder, split, suffix))
-        if split == "dev":
-            split = "validation"
-        datasets_dic["{}".format(split)] = ds.Dataset.from_pandas(df)
-    return datasets_dic
 
 
 def load_glue(task):
@@ -806,11 +618,7 @@ def load_sst2():
 
 
 if __name__ == "__main__":
-    from transformers import (
-        RobertaTokenizer,
-        BertTokenizer,
-        AutoTokenizer,
-    )
+    from transformers import AutoTokenizer
     from tqdm import tqdm
 
     tok = AutoTokenizer.from_pretrained("distilbert-base-cased")

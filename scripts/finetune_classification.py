@@ -8,7 +8,7 @@ from transformers import (
     TrainingArguments,
 )
 
-from toddbenchmark.generation_datasets import prep_dataset, prep_model
+from toddbenchmark.classification_datasets import prep_dataset, prep_model
 
 
 def parse_args():

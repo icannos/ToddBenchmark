@@ -13,7 +13,7 @@ from toddbenchmark.generation_datasets_configs import (
     DATASETS_CONFIGS,
     load_requested_dataset,
 )
-from toddbenchmark.generation_data import prep_model
+from toddbenchmark.generation_datasets import prep_model
 
 from toddbenchmark.utils import prepare_detectors, evaluate_dataloader, mk_file_name
 
