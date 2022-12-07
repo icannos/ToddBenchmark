@@ -25,4 +25,4 @@ Please see `toddbenchmark/classification_datasets_config.py` and
 To add a new dataset you'll need 
 - To add corresponding configs in `toddbenchmark/(*)_datasets_config.py` and
 - To add a load function in `toddbenchmark/(*)_datasets.py`
-- To add the loading condidition in the corresponding "load_requested_dataset" function in `toddbenchmark/(*)_datasets.py`
+- To add the loading condition in the corresponding "load_requested_dataset" / "prep_dataset" function in `toddbenchmark/(*)_datasets.py`
