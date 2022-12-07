@@ -42,4 +42,4 @@ ES_CONFIGS = {
     "es_tweet_inde": {"label": 3, "metric": "mnli", "keys": ("text", None)},
 }
 
-ALL_CONFIGS = EN_CONFIGS | FR_CONFIGS | DE_CONFIGS | ES_CONFIGS
+DATASETS_CONFIGS = EN_CONFIGS | FR_CONFIGS | DE_CONFIGS | ES_CONFIGS

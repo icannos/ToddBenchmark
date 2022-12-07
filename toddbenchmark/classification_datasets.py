@@ -2,7 +2,8 @@ import random
 
 from datasets import load_dataset, Dataset
 
-from .classification_datasets_configs import ALL_CONFIGS
+from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from .classification_datasets_configs import DATASETS_CONFIGS
 
 
 class ClassificationDataset(Dataset):
@@ -24,7 +25,7 @@ class ClassificationDataset(Dataset):
 
 
 def load_requested_config(config_name, tokenizer):
-    config = ALL_CONFIGS[config_name]
+    config = DATASETS_CONFIGS[config_name]
     sentence1_key, sentence2_key = config["keys"]
 
     datasets = None
@@ -617,28 +618,25 @@ def load_sst2():
     return datasets
 
 
+def prep_model(model_name):
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+    return model, tokenizer
+
+
 if __name__ == "__main__":
     from transformers import AutoTokenizer
     from tqdm import tqdm
 
     tok = AutoTokenizer.from_pretrained("distilbert-base-cased")
 
-    for k in task_to_labels:
-        if k not in task_to_metric:
-            print(f"task {k} not in task_to_metric")
-        if k not in task_to_keys:
-            print(f"task {k} not in task_to_keys")
-
-    print("TASKS")
-    print("======================================")
-    print(" ".join([k for k in task_to_labels.keys()]))
-    print("======================================")
-
-    for k, v in task_to_labels.items():
+    for config_name, config in DATASETS_CONFIGS.items():
         try:
-            load(k, tok)
+            load_requested_config(config_name, tok)
         except Exception as e:
             print("LOADING ERROR")
             print(e)
-            print(k)
+            print(config_name)
+            print(config)
             pass
