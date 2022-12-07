@@ -9,6 +9,7 @@ EN_CONFIGS = {
         "label": 30,
         "metric": "mnli",
         "keys": ("review_body", None),
+        "language": "en",
     },
     "go_emotions": {"label": 28, "metric": "mnli", "keys": ("text", None)},
     "sst2": {"label": 2, "metric": "sst2", "keys": ("sentence", None)},

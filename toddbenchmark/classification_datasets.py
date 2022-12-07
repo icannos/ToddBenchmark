@@ -1,27 +1,10 @@
 import random
+from typing import Optional, Dict, Tuple
 
 from datasets import load_dataset, Dataset
+from transformers import AutoModelForSequenceClassification
 
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from .classification_datasets_configs import DATASETS_CONFIGS
-
-
-class ClassificationDataset(Dataset):
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    def __getitem__(self, index):
-        return self.dataset[index]
-
-    def map(self, fn):
-        self.dataset = [x | fn(x) for x in self.dataset]
-        return self
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __repr__(self):
-        return f"GenerationDataset(len={len(self)}, features={self.dataset[0].keys()})"
 
 
 def prep_dataset(
@@ -31,7 +14,7 @@ def prep_dataset(
     train_max_size=-1,
     validation_max_size=-1,
     test_max_size=-1,
-):
+) -> Tuple[Dataset, Dataset, Dataset]:
     sentence1_key, sentence2_key = config["keys"]
 
     datasets = None
@@ -43,7 +26,7 @@ def prep_dataset(
     elif config_name == "tweet_eval":
         datasets = load_tweet_eval()
     elif config_name == "amazon_reviews_multi":
-        datasets = load_amazon_reviews_multi(language)
+        datasets = load_amazon_reviews_multi(config["language"])
     elif config_name == "go_emotions":
         datasets = load_go_emotions()
     elif config_name == "sst2":
@@ -96,6 +79,7 @@ def prep_dataset(
         raise ValueError(f"Unknown dataset {config_name}")
 
     def preprocess_function(examples):
+        result = {}
         inputs = (
             examples[sentence1_key]
             if sentence2_key is None
@@ -122,9 +106,9 @@ def prep_dataset(
         list(map(preprocess_function, datasets["test"])) if "test" in datasets else None
     )
 
-    train_dataset = ClassificationDataset(train_dataset[:train_max_size])
-    dev_dataset = ClassificationDataset(dev_dataset[:val_max_size])
-    test_dataset = ClassificationDataset(test_dataset[:test_max_size])
+    train_dataset = Dataset.from_list(train_dataset[:train_max_size])
+    dev_dataset = Dataset.from_list(dev_dataset[:validation_max_size])
+    test_dataset = Dataset.from_list(test_dataset[:test_max_size])
 
     return train_dataset, dev_dataset, test_dataset
 
@@ -625,7 +609,6 @@ def load_sst2():
 
 
 def prep_model(model_name, config: Optional[Dict] = None):
-
     if config is None:
         config = {"labels": 2}
 

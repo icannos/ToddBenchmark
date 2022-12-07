@@ -7,17 +7,23 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
+import evaluate
 
 from toddbenchmark.classification_datasets import prep_dataset, prep_model
+from toddbenchmark.classification_datasets_configs import DATASETS_CONFIGS
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
     parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-en-de")
-    parser.add_argument("--dataset_name", type=str, default="Helsinki-NLP/tatoeba_mt")
-    parser.add_argument("--dataset_config", type=str, default="eng-deu")
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument(
+        "--dataset_config",
+        type=str,
+        default="Not huggingface dataset config but config presented in this repo",
+        choices=list(DATASETS_CONFIGS.keys()),
+    )
 
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--epoch", type=int, default=100)
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--temperature", type=float, default=1.0)
@@ -31,23 +37,17 @@ def parse_args():
     return parser.parse_args()
 
 
+accuracy = evaluate.load("accuracy")
+
+
+def compute_metrics(eval_pred):
+    predictions, labels = eval_pred
+    predictions = np.argmax(predictions, axis=1)
+    return accuracy.compute(predictions=predictions, references=labels)
+
+
 if __name__ == "__main__":
     args = parse_args()
-
-    metrics = {
-        "Accuracy": load_metric("accuracy"),
-        "BLEU": load_metric("sacrebleu"),
-        "rouge": load_metric("rouge"),
-    }
-
-    def compute_metrics(eval_pred):
-        logits, labels = eval_pred
-        predictions = np.argmax(logits, axis=-1)
-
-        return {
-            k: m.compute(predictions=predictions, references=labels)
-            for k, m in metrics.items()
-        }
 
     training_args = TrainingArguments(
         output_dir=args.output_dir,
@@ -61,13 +61,11 @@ if __name__ == "__main__":
 
     model, tokenizer = prep_model(args.model_name)
     train_dataset, validation_dataset, _ = prep_dataset(
-        args.dataset_name, args.dataset_config
+        args.dataset_config, DATASETS_CONFIGS[args.dataset_config]
     )
 
     def tokenize_function(examples):
-        return tokenizer(
-            text=examples["source"], text_target=examples["target"], truncation=True
-        )
+        return tokenizer(text=examples["text"], truncation=True)
 
     train_dataset = train_dataset.map(
         tokenize_function,
@@ -88,3 +86,5 @@ if __name__ == "__main__":
         tokenizer=tokenizer,
         compute_metrics=compute_metrics,
     )
+
+    trainer.train()
