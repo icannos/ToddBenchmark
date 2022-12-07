@@ -1,10 +1,10 @@
 import random
 from typing import Optional, Dict, Tuple
 
-from datasets import load_dataset, Dataset
-from transformers import AutoModelForSequenceClassification
+from tqdm import tqdm
 
-from .classification_datasets_configs import DATASETS_CONFIGS
+from datasets import load_dataset, Dataset
+from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 
 def prep_dataset(
@@ -86,7 +86,7 @@ def prep_dataset(
             else examples[sentence1_key] + " " + examples[sentence2_key]
         )
 
-        text = inputs[0]
+        result["text"] = inputs
 
         result["labels"] = examples["label"] if "label" in examples else 0
 
@@ -585,32 +585,21 @@ def load_go_emotions():
 
 
 def load_sst2():
-    def process(file_name):
-        examples = []
-        with open(file_name, "r") as fh:
-            for line in fh:
-                splits = line.split()
-                label = splits[0]
-                text = " ".join(splits[1:])
-                examples.append({"sentence": text, "label": int(label)})
-        return examples
-
     datasets = load_dataset("glue", "sst2")
-    train_dataset = list(datasets["train"])
-    val_share = 0.1
-    num_reserve = int(len(train_dataset) * val_share)
 
-    dev_dataset = list(datasets["validation"]) + train_dataset[-num_reserve:]
-    train_dataset = train_dataset[:-num_reserve]
+    train = [{"text": x["sentence"], "label": x["label"]} for x in datasets["train"]]
+    validation = [
+        {"text": x["sentence"], "label": x["label"]} for x in datasets["validation"]
+    ]
+    test = [{"text": x["sentence"], "label": x["label"]} for x in datasets["test"]]
 
-    test_dataset = process("data/sst2/test.data")
-    datasets = {"train": train_dataset, "validation": dev_dataset, "test": test_dataset}
+    datasets = {"train": train, "validation": validation, "test": test}
     return datasets
 
 
 def prep_model(model_name, config: Optional[Dict] = None):
     if config is None:
-        config = {"labels": 2}
+        config = {"label": 2}
 
     tokenizer = AutoTokenizer.from_pretrained(model_name)
     model = AutoModelForSequenceClassification.from_pretrained(
@@ -618,20 +607,3 @@ def prep_model(model_name, config: Optional[Dict] = None):
     )
 
     return model, tokenizer
-
-
-if __name__ == "__main__":
-    from transformers import AutoTokenizer
-    from tqdm import tqdm
-
-    tok = AutoTokenizer.from_pretrained("distilbert-base-cased")
-
-    for config_name, config in DATASETS_CONFIGS.items():
-        try:
-            prep_dataset(config_name, config, tok)
-        except Exception as e:
-            print("LOADING ERROR")
-            print(e)
-            print(config_name)
-            print(config)
-            pass

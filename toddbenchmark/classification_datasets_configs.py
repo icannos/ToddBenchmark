@@ -12,7 +12,7 @@ EN_CONFIGS = {
         "language": "en",
     },
     "go_emotions": {"label": 28, "metric": "mnli", "keys": ("text", None)},
-    "sst2": {"label": 2, "metric": "sst2", "keys": ("sentence", None)},
+    "sst2": {"label": 2, "metric": "sst2", "keys": ("text", None)},
     "imdb": {"label": 2, "metric": "sst2", "keys": ("text", None)},
     "20ng": {"label": 20, "metric": "mnli", "keys": ("text_scr", None)},
     "trec": {"label": 6, "metric": "mnli", "keys": ("text_scr", None)},

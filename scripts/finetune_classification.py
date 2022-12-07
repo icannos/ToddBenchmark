@@ -1,32 +1,32 @@
 import argparse
 
+import evaluate
 import numpy as np
 import torch
-from datasets import load_metric
+from toddbenchmark.classification_datasets import prep_dataset, prep_model
+from toddbenchmark.classification_datasets_configs import DATASETS_CONFIGS
 from transformers import (
     Trainer,
     TrainingArguments,
 )
-import evaluate
-
-from toddbenchmark.classification_datasets import prep_dataset, prep_model
-from toddbenchmark.classification_datasets_configs import DATASETS_CONFIGS
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
-    parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-en-de")
+    parser = argparse.ArgumentParser(
+        description="Finetune a classification model on a dataset"
+    )
+    parser.add_argument("--model_name", type=str, default="distilbert-base-uncased")
     parser.add_argument(
         "--dataset_config",
         type=str,
-        default="Not huggingface dataset config but config presented in this repo",
+        help="Not huggingface dataset config but config presented in this repo",
+        default="sst2",
         choices=list(DATASETS_CONFIGS.keys()),
     )
 
-    parser.add_argument("--batch_size", type=int, default=16)
+    parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--epoch", type=int, default=100)
-    parser.add_argument("--max_length", type=int, default=150)
-    parser.add_argument("--temperature", type=float, default=1.0)
+    parser.add_argument("--max_length", type=int, default=50)
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument(
@@ -57,11 +57,14 @@ if __name__ == "__main__":
         save_steps=1000,
         logging_strategy="steps",
         logging_steps=1000,
+        seed=args.seed,
     )
 
-    model, tokenizer = prep_model(args.model_name)
+    model, tokenizer = prep_model(
+        args.model_name, DATASETS_CONFIGS[args.dataset_config]
+    )
     train_dataset, validation_dataset, _ = prep_dataset(
-        args.dataset_config, DATASETS_CONFIGS[args.dataset_config]
+        args.dataset_config, DATASETS_CONFIGS[args.dataset_config], tokenizer
     )
 
     def tokenize_function(examples):
