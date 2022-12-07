@@ -24,8 +24,14 @@ class ClassificationDataset(Dataset):
         return f"GenerationDataset(len={len(self)}, features={self.dataset[0].keys()})"
 
 
-def load_requested_config(config_name, tokenizer):
-    config = DATASETS_CONFIGS[config_name]
+def prep_dataset(
+    config_name,
+    config,
+    tokenizer,
+    train_max_size=-1,
+    validation_max_size=-1,
+    test_max_size=-1,
+):
     sentence1_key, sentence2_key = config["keys"]
 
     datasets = None
@@ -116,9 +122,9 @@ def load_requested_config(config_name, tokenizer):
         list(map(preprocess_function, datasets["test"])) if "test" in datasets else None
     )
 
-    train_dataset = ClassificationDataset(train_dataset)
-    dev_dataset = ClassificationDataset(dev_dataset)
-    test_dataset = ClassificationDataset(test_dataset)
+    train_dataset = ClassificationDataset(train_dataset[:train_max_size])
+    dev_dataset = ClassificationDataset(dev_dataset[:val_max_size])
+    test_dataset = ClassificationDataset(test_dataset[:test_max_size])
 
     return train_dataset, dev_dataset, test_dataset
 
@@ -639,7 +645,7 @@ if __name__ == "__main__":
 
     for config_name, config in DATASETS_CONFIGS.items():
         try:
-            load_requested_config(config_name, tok)
+            prep_dataset(config_name, config, tok)
         except Exception as e:
             print("LOADING ERROR")
             print(e)
