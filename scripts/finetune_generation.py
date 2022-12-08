@@ -2,7 +2,7 @@ import argparse
 
 import numpy as np
 import torch
-from datasets import load_metric
+from evaluate import load as load_metric
 from transformers import (
     Trainer,
     TrainingArguments,

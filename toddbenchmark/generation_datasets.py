@@ -115,6 +115,32 @@ def load_translation_dataset(
     return {"train": train, "validation": val, "test": test}
 
 
+def load_tatoeba_dataset(
+    dataset_name,
+    dataset_config,
+):
+    datasets = try_load_dataset_config(dataset_name, dataset_config)
+    src, tgt = dataset_config.split("-")
+    if datasets["test"]["sourceLang"][0] == src:
+        source_string = "sourceString"
+        target_string = "targetString"
+    else:
+        source_string = "targetString"
+        target_string = "sourceString"
+
+    full_validation = [
+        (x[source_string], x[target_string]) for x in datasets["validation"]
+    ]
+    full_test = [(x[source_string], x[target_string]) for x in datasets["test"]]
+
+    # Use 0.8 of the validation set as the training set
+    train = full_validation[: int(0.8 * len(full_validation))]
+    validation = full_validation[int(0.8 * len(full_validation)) :]
+    test = full_test
+
+    return {"train": train, "validation": validation, "test": test}
+
+
 def load_wmt16_dataset(
     dataset_name,
     dataset_config,
@@ -250,7 +276,11 @@ def prep_dataset(
             tokenizer,
             dataset_name,
         )
-
+    elif dataset_name == "Helsinki-NLP/tatoeba_mt":
+        dataset = load_tatoeba_dataset(
+            dataset_name,
+            dataset_config,
+        )
     elif dataset_name == "multi_woz_v22":
         dataset = load_multi_woz_v22(
             tokenizer,

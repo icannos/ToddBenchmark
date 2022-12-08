@@ -5,3 +5,6 @@ torch
 torchvision
 tqdm
 datasets
+sacremoses
+pandas
+numpy

@@ -8,7 +8,7 @@ from Todd import FilterType
 
 
 def prepare_detectors(
-    detectors: List[FilterType], model, loader: DataLoader
+    detectors: List[FilterType], model, loader: DataLoader, tokenizer
 ) -> List[FilterType]:
     """
     Fit the detectors on the behavior of the model on the (in) validation set
@@ -19,9 +19,18 @@ def prepare_detectors(
     """
 
     for batch in loader:
+
+        inputs = tokenizer(
+            batch["source"], padding=True, truncation=True, return_tensors="pt"
+        )
+        labels = tokenizer(
+            batch["target"], padding=True, truncation=True, return_tensors="pt"
+        )
+
+        inputs = {k: v.to(model.device) for k, v in inputs.items()}
         output = model.generate(
-            input_ids=batch["input_ids"],
-            attention_mask=batch["attention_mask"],
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
             max_length=100,
             num_beams=4,
             num_return_sequences=4,
@@ -40,14 +49,14 @@ def prepare_detectors(
     return detectors
 
 
-def flatten_dict(dict):
+def flatten_dict(d):
     """
     Flatten a dictionary
-    :param dict: Dictionary to flatten
+    :param d: Dictionary to flatten
     :return: Flattened dictionary
     """
     result = {}
-    for key, value in dict.items():
+    for key, value in d.items():
         if isinstance(value, dict):
             result.update({f"{key}+{k}": v for k, v in flatten_dict(value)})
         else:
@@ -81,11 +90,19 @@ def evaluate_dataloader(
     records["likelihood"] = []
 
     for batch_idx, batch in enumerate(data_loader):
-        x = batch["input_ids"]
+
+        inputs = tokenizer(
+            batch["source"], padding=True, truncation=True, return_tensors="pt"
+        )
+        labels = tokenizer(
+            batch["target"], padding=True, truncation=True, return_tensors="pt"
+        )
+
+        inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
         output = model.generate(
-            input_ids=batch["input_ids"],
-            attention_mask=batch["attention_mask"],
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
             max_length=max_length,
             num_beams=num_beams,
             num_return_sequences=num_return_sequences,

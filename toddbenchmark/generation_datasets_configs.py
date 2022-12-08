@@ -54,10 +54,6 @@ def load_requested_dataset(
     validation_size: int = 3000,
     test_size: int = 3000,
 ):
-    def tokenize_function(examples):
-        return tokenizer(
-            text=examples["source"], text_target=examples["target"], truncation=True
-        )
 
     datasets = {}
 
@@ -75,18 +71,6 @@ def load_requested_dataset(
         train_max_size=train_size,
         validation_max_size=validation_size,
         test_max_size=test_size,
-    )
-
-    validation_dataset = validation_dataset.map(
-        tokenize_function,
-        batched=True,
-        num_proc=4,
-    )
-
-    test_dataset = test_dataset.map(
-        tokenize_function,
-        batched=True,
-        num_proc=4,
     )
 
     train_loader = DataLoader(
