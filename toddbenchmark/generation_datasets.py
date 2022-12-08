@@ -1,7 +1,6 @@
 from typing import Tuple
 
-from datasets import load_dataset
-from torch.utils.data import Dataset
+from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
 from .utils import try_load_dataset_config
 
@@ -19,24 +18,6 @@ def no_empty_dataset_sanity_check(name, dataset):
     for split, data in dataset.items():
         # check data length:
         assert len(data) > 0, f"{name} {split} dataset is empty"
-
-
-class GenerationDataset(Dataset):
-    def __init__(self, dataset):
-        self.dataset = dataset
-
-    def __getitem__(self, index):
-        return self.dataset[index]
-
-    def map(self, fn):
-        self.dataset = [x | fn(x) for x in self.dataset]
-        return self
-
-    def __len__(self):
-        return len(self.dataset)
-
-    def __repr__(self):
-        return f"GenerationDataset(len={len(self)}, features={self.dataset[0].keys()})"
 
 
 def load_daily_dialog(tokenizer, dataset_name):
@@ -251,9 +232,9 @@ def prep_dataset(
     dataset_name,
     dataset_config,
     tokenizer,
-    train_max_size,
-    validation_max_size,
-    test_max_size,
+    train_max_size=-1,
+    validation_max_size=-1,
+    test_max_size=-1,
 ) -> Tuple[Dataset, Dataset, Dataset]:
     """
 
@@ -320,9 +301,9 @@ def prep_dataset(
         ds = dataset[split]
         return [{"source": s, "target": t} for s, t in ds]
 
-    train = GenerationDataset(to_dict(dataset, "train")[:train_max_size])
-    val = GenerationDataset(to_dict(dataset, "validation")[:validation_max_size])
-    test = GenerationDataset(to_dict(dataset, "test")[:test_max_size])
+    train = Dataset.from_list(to_dict(dataset, "train")[:train_max_size])
+    val = Dataset.from_list(to_dict(dataset, "validation")[:validation_max_size])
+    test = Dataset.from_list(to_dict(dataset, "test")[:test_max_size])
 
     return train, val, test
 

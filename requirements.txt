@@ -1,0 +1,7 @@
+rouge_score
+nltk
+transformers
+torch
+torchvision
+tqdm
+datasets
