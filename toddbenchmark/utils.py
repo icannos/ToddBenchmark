@@ -70,7 +70,7 @@ def evaluate_batch(output, detectors: List[FilterType]) -> Dict[str, torch.Tenso
     scores = {}
     for detector in detectors:
         s = detector.compute_scores_benchmark(output)
-        scores |= flatten_dict(s)
+        scores |= {f"{detector}+{k}": v for k, v in flatten_dict(s).items()}
 
     return scores
 
@@ -86,7 +86,13 @@ def evaluate_dataloader(
 ) -> Dict[str, List]:
 
     # Initialize the scores dictionary
-    records: Dict[str, List] = {f"{detector}": [] for detector in detectors}
+    records: Dict[str, List] = {
+        f"{detector}+{score_name}": []
+        for detector in detectors
+        for score_name in detector.score_names
+    }
+
+    print(records)
     records["likelihood"] = []
 
     for batch_idx, batch in enumerate(data_loader):
@@ -117,6 +123,8 @@ def evaluate_dataloader(
 
         ood_scores = evaluate_batch(output, detectors)
         ood_scores = {k: scores.tolist() for k, scores in ood_scores.items()}
+
+        print(ood_scores)
 
         for k, scores in ood_scores.items():
             records[k].extend(scores)
