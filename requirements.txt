@@ -8,3 +8,4 @@ datasets
 sacremoses
 pandas
 numpy
+mauve-text

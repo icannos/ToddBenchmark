@@ -17,6 +17,11 @@ from toddbenchmark.utils_generation import (
     evaluate_dataloader,
     mk_file_name,
 )
+import evaluate
+from sacrebleu import BLEU
+from bert_score import BERTScorer
+
+from toddbenchmark.utils import dump_json
 
 
 def parse_args():
@@ -39,7 +44,7 @@ def parse_args():
         choices=config_choices,
     )
 
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=2)
     parser.add_argument("--num_return_sequences", type=int, default=4)
 
     parser.add_argument("--max_length", type=int, default=150)
@@ -63,6 +68,12 @@ def parse_args():
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
     parser.add_argument("--output_dir", type=str, default="output")
+    parser.add_argument(
+        "--append",
+        action="store_true",
+        default=False,
+        help="Append to existing results",
+    )
     return parser.parse_args()
 
 
@@ -72,6 +83,14 @@ def parse_args():
 if __name__ == "__main__":
     args = parse_args()
 
+    bleuscorer = BLEU(effective_order=True)
+    bertscorer = BERTScorer(lang="en", rescale_with_baseline=True)
+
+    def metric_eval(prediction, reference):
+        bleu = bleuscorer.sentence_score(hypothesis=prediction, references=[reference])
+        bert = bertscorer.score([prediction], [reference])
+        return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
+
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
 
@@ -79,7 +98,7 @@ if __name__ == "__main__":
         SequenceRenyiNegFilter(
             threshold=0.5,
             alpha=1.5,
-            mode="output",
+            mode="output",  # input, output, token
             batch_size=args.batch_size,
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
@@ -110,6 +129,7 @@ if __name__ == "__main__":
         num_beams=args.num_return_sequences,
         num_return_sequences=args.num_return_sequences,
         max_length=150,
+        metric_eval=metric_eval,
     )
 
     inval_ds_scores_path = Path(args.output_dir) / (
@@ -118,8 +138,7 @@ if __name__ == "__main__":
     )
     inval_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(inval_ds_scores_path, "w") as f:
-        json.dump(records, f)
+    dump_json(records, inval_ds_scores_path, append=args.append)
 
     # ====================== Evaluate the detectors on the (in) test set ====================== #
 
@@ -140,8 +159,7 @@ if __name__ == "__main__":
     )
     in_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(in_ds_scores_path, "w") as f:
-        json.dump(records, f)
+    dump_json(records, in_ds_scores_path, append=args.append)
 
     # ====================== Evaluate the detectors on the (out) test sets ====================== #
 
@@ -169,5 +187,4 @@ if __name__ == "__main__":
         )
         out_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(out_ds_scores_path, "w") as f:
-            json.dump(records, f)
+        dump_json(records, out_ds_scores_path, append=args.append)

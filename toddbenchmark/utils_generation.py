@@ -1,8 +1,10 @@
-from typing import List, Dict, Any
+from collections import defaultdict
+from typing import List, Dict, Any, Optional, Callable
 
 import torch
 from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
+import evaluate
 
 from Todd import FilterType
 
@@ -83,6 +85,7 @@ def evaluate_dataloader(
     num_beams: int,
     num_return_sequences: int,
     max_length: int,
+    metric_eval: Optional[Callable] = None,
 ) -> Dict[str, List]:
 
     # Initialize the scores dictionary
@@ -122,20 +125,50 @@ def evaluate_dataloader(
         # each containing a numpy array of shape (batch_size, num_return_sequences))
 
         ood_scores = evaluate_batch(output, detectors)
-        ood_scores = {k: scores.tolist() for k, scores in ood_scores.items()}
-
-        print(ood_scores)
+        ood_scores = {
+            k: (scores.tolist() if not isinstance(scores, list) else scores)
+            for k, scores in ood_scores.items()
+        }
 
         for k, scores in ood_scores.items():
             records[k].extend(scores)
 
         # A list of list ie each returned sequence for each batch
-        decoded_sequences = tokenizer.batch_decode(
-            output.sequences, skip_special_tokens=True
+        generated_sequences = output.sequences.view(
+            output.sequences.shape[0] // num_return_sequences,
+            num_return_sequences,
+            -1,
         )
 
-        sequences_scores = output.sequences_scores.tolist()
+        global_perfs_scores = defaultdict(list)
+        for sample_id, seqs in enumerate(generated_sequences):
+            decoded_sequences = tokenizer.batch_decode(
+                seqs,
+                skip_special_tokens=True,
+            )
+
+            per_gen_score = defaultdict(list)
+            for hyp in decoded_sequences:
+                for k, v in metric_eval(hyp, batch["target"][sample_id]).items():
+                    per_gen_score[k].append(v)
+                per_gen_score["hyp"].append(hyp)
+
+            for k, v in per_gen_score.items():
+                global_perfs_scores[k].append(v)
+            global_perfs_scores["ref"].append(batch["target"][sample_id])
+
+        for k, v in global_perfs_scores.items():
+            if k not in records:
+                records[k] = []
+            records[k].extend(v)
+
+        sequences_scores = output.sequences_scores.view(
+            output.sequences_scores.shape[0] // num_return_sequences,
+            num_return_sequences,
+        ).tolist()
+
         records["likelihood"].extend(sequences_scores)
+        print(records)
 
     return records
 
