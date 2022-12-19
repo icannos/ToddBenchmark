@@ -6,7 +6,12 @@ from typing import List
 import torch
 from tqdm import tqdm
 
-from Todd import FilterType, MahalanobisFilter, SequenceRenyiNegFilter
+from Todd import (
+    FilterType,
+    MahalanobisFilter,
+    SequenceRenyiNegFilter,
+    BeamRenyiInformationProjection,
+)
 from toddbenchmark.generation_datasets import prep_model
 from toddbenchmark.generation_datasets_configs import (
     DATASETS_CONFIGS,
@@ -103,6 +108,14 @@ if __name__ == "__main__":
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
         ),
+        BeamRenyiInformationProjection(
+            threshold=0.5,
+            alpha=1.5,
+            batch_size=args.batch_size,
+            num_return_sequences=args.num_return_sequences,
+            num_beams=args.num_return_sequences,
+            mode="output",
+        ),
     ]
     # Load the reference set
     _, validation_loader, test_loader = load_requested_dataset(
@@ -152,6 +165,7 @@ if __name__ == "__main__":
         num_beams=args.num_return_sequences,
         num_return_sequences=args.num_return_sequences,
         max_length=150,
+        metric_eval=metric_eval,
     )
 
     in_ds_scores_path = Path(args.output_dir) / (
@@ -177,9 +191,10 @@ if __name__ == "__main__":
             test_loader,
             tokenizer,
             detectors,
-            num_beams=2,
-            num_return_sequences=2,
+            num_beams=args.num_return_sequences,
+            num_return_sequences=args.num_return_sequences,
             max_length=150,
+            metric_eval=metric_eval,
         )
 
         out_ds_scores_path = Path(args.output_dir) / (
