@@ -6,13 +6,17 @@ from typing import List
 import torch
 from tqdm import tqdm
 
-from Todd import FilterType, MahalanobisFilter
+from Todd import FilterType, MahalanobisFilter, SequenceRenyiNegFilter
 from toddbenchmark.generation_datasets import prep_model
 from toddbenchmark.generation_datasets_configs import (
     DATASETS_CONFIGS,
     load_requested_dataset,
 )
-from toddbenchmark.utils import prepare_detectors, evaluate_dataloader, mk_file_name
+from toddbenchmark.utils_generation import (
+    prepare_detectors,
+    evaluate_dataloader,
+    mk_file_name,
+)
 
 
 def parse_args():
@@ -36,7 +40,7 @@ def parse_args():
     )
 
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--num_return_sequences", type=int, default=1)
+    parser.add_argument("--num_return_sequences", type=int, default=4)
 
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)
@@ -62,7 +66,7 @@ def parse_args():
     return parser.parse_args()
 
 
-detectors: List[FilterType] = [MahalanobisFilter(threshold=0.5, layers=[-1])]
+# detectors: List[FilterType] = [MahalanobisFilter(threshold=0.5, layers=[-1])]
 
 
 if __name__ == "__main__":
@@ -71,9 +75,24 @@ if __name__ == "__main__":
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
 
+    detectors: List[FilterType] = [
+        SequenceRenyiNegFilter(
+            threshold=0.5,
+            alpha=1.5,
+            mode="output",
+            batch_size=args.batch_size,
+            num_return_sequences=args.num_return_sequences,
+            num_beam=args.num_return_sequences,
+        ),
+    ]
     # Load the reference set
     _, validation_loader, test_loader = load_requested_dataset(
-        args.in_config, tokenizer, 0, args.validation_size, args.test_size
+        args.in_config,
+        tokenizer,
+        args.batch_size,
+        0,
+        args.validation_size,
+        args.test_size,
     )
 
     # Fit the detectors on the behavior of the model on the (in) validation set
@@ -88,8 +107,8 @@ if __name__ == "__main__":
         validation_loader,
         tokenizer,
         detectors,
-        num_beams=4,
-        num_return_sequences=4,
+        num_beams=args.num_return_sequences,
+        num_return_sequences=args.num_return_sequences,
         max_length=150,
     )
 
@@ -111,8 +130,8 @@ if __name__ == "__main__":
         test_loader,
         tokenizer,
         detectors,
-        num_beams=4,
-        num_return_sequences=4,
+        num_beams=args.num_return_sequences,
+        num_return_sequences=args.num_return_sequences,
         max_length=150,
     )
 
@@ -130,7 +149,7 @@ if __name__ == "__main__":
     for out_config in tqdm(args.out_configs):
         # Load the out-of-distribution set
         _, _, test_loader = load_requested_dataset(
-            out_config, tokenizer, 0, 0, args.test_size
+            out_config, tokenizer, args.batch_size, 0, 0, args.test_size
         )
 
         # Evaluate the model on the (out) test set

@@ -2,7 +2,7 @@ from typing import Tuple
 
 from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
-from .utils import try_load_dataset_config
+from .utils_generation import try_load_dataset_config
 
 
 # Each load_[dataset] function returns a dictionary with the following keys: "train", "validation", "test" containing

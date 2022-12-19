@@ -50,6 +50,7 @@ DATASETS_CONFIGS["tatoeba_mt_cat_eng"] = BASE_CONFIG | {
 def load_requested_dataset(
     config_name: str,
     tokenizer,
+    batch_size: int = 16,
     train_size: int = 3000,
     validation_size: int = 3000,
     test_size: int = 3000,
@@ -75,21 +76,21 @@ def load_requested_dataset(
 
     train_loader = DataLoader(
         train_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=False,
         num_workers=4,
     )
 
     validation_loader = DataLoader(
         validation_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=False,
         num_workers=4,
     )
 
     test_loader = DataLoader(
         test_dataset,
-        batch_size=config["batch_size"],
+        batch_size=batch_size,
         shuffle=False,
         num_workers=4,
     )
