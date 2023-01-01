@@ -31,7 +31,7 @@ from toddbenchmark.utils import dump_json
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
-    parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-en-de")
+    parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-de-en")
 
     config_choices: List[str] = list(DATASETS_CONFIGS.keys())
 
@@ -104,14 +104,12 @@ if __name__ == "__main__":
             threshold=0.5,
             alpha=1.5,
             mode="output",  # input, output, token
-            batch_size=args.batch_size,
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
         ),
         BeamRenyiInformationProjection(
             threshold=0.5,
             alpha=1.5,
-            batch_size=args.batch_size,
             num_return_sequences=args.num_return_sequences,
             num_beams=args.num_return_sequences,
             mode="output",
