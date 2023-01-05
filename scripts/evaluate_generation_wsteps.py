@@ -6,7 +6,7 @@ from typing import List
 import torch
 from tqdm import tqdm
 
-from Todd import FilterType, MahalanobisFilter
+from Todd import ScorerType, MahalanobisFilter
 from toddbenchmark.generation_datasets import prep_model
 from toddbenchmark.generation_datasets_configs import (
     DATASETS_CONFIGS,
@@ -66,7 +66,7 @@ def parse_args():
     return parser.parse_args()
 
 
-detectors: List[FilterType] = [MahalanobisFilter(threshold=0.5, layers=[-1])]
+detectors: List[ScorerType] = [MahalanobisFilter(threshold=0.5, layers=[-1])]
 
 
 if __name__ == "__main__":

@@ -7,9 +7,9 @@ import torch
 from tqdm import tqdm
 
 from Todd import (
-    FilterType,
+    ScorerType,
     MahalanobisFilter,
-    SequenceRenyiNegFilter,
+    SequenceRenyiNegScorer,
     BeamRenyiInformationProjection,
 )
 from toddbenchmark.generation_datasets import prep_model
@@ -99,22 +99,27 @@ if __name__ == "__main__":
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
 
-    detectors: List[FilterType] = [
-        SequenceRenyiNegFilter(
+    detectors: List[ScorerType] = [
+        SequenceRenyiNegScorer(
             threshold=0.5,
             alpha=1.5,
-            mode="output",  # input, output, token
+            mode="token",  # input, output, token
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
-        ),
-        BeamRenyiInformationProjection(
-            threshold=0.5,
-            alpha=1.5,
-            num_return_sequences=args.num_return_sequences,
-            num_beams=args.num_return_sequences,
-            mode="output",
-        ),
+        )
+        for t in [0.5, 1, 1.5, 2]
+        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
     ]
+
+
+        # BeamRenyiInformationProjection(
+        #     threshold=0.5,
+        #     alpha=1.5,
+        #     num_return_sequences=args.num_return_sequences,
+        #     num_beams=args.num_return_sequences,
+        #     mode="output",
+        # )
+
     # Load the reference set
     _, validation_loader, test_loader = load_requested_dataset(
         args.in_config,

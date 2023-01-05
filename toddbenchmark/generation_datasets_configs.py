@@ -17,10 +17,6 @@ DATASETS_CONFIGS["wmt16_de_en"] = BASE_CONFIG | {
     "dataset_name": "wmt16",
     "dataset_config": "de-en",
 }
-DATASETS_CONFIGS["wmt16_fr_en"] = BASE_CONFIG | {
-    "dataset_name": "wmt16",
-    "dataset_config": "fr-en",
-}
 
 # news_commentary
 DATASETS_CONFIGS["news_commentary_en_de"] = BASE_CONFIG | {

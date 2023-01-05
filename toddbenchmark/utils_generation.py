@@ -6,12 +6,12 @@ from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
 import evaluate
 
-from Todd import FilterType
+from Todd import ScorerType
 
 
 def prepare_detectors(
-    detectors: List[FilterType], model, loader: DataLoader, tokenizer
-) -> List[FilterType]:
+    detectors: List[ScorerType], model, loader: DataLoader, tokenizer
+) -> List[ScorerType]:
     """
     Fit the detectors on the behavior of the model on the (in) validation set
     :param detectors: List of detectors to fit
@@ -67,7 +67,7 @@ def flatten_dict(d):
     return result
 
 
-def evaluate_batch(output, detectors: List[FilterType]) -> Dict[str, torch.Tensor]:
+def evaluate_batch(output, detectors: List[ScorerType]) -> Dict[str, torch.Tensor]:
 
     scores = {}
     for detector in detectors:
@@ -81,7 +81,7 @@ def evaluate_dataloader(
     model,
     data_loader: DataLoader,
     tokenizer,
-    detectors: List[FilterType],
+    detectors: List[ScorerType],
     num_beams: int,
     num_return_sequences: int,
     max_length: int,
