@@ -1,4 +1,5 @@
-from typing import Tuple
+from typing import Tuple, Optional
+import os
 
 from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
@@ -18,6 +19,23 @@ def no_empty_dataset_sanity_check(name, dataset):
     for split, data in dataset.items():
         # check data length:
         assert len(data) > 0, f"{name} {split} dataset is empty"
+
+
+def load_local_textattack_csv_dataset(dataset_name: str,
+                                      src_col: str = "source",
+                                      target_col: str = "target"):
+
+    dataset = load_dataset("csv", data_files=dataset_name)
+
+    val_test_dataset = dataset["train"].train_test_split(test_size=0.5)
+
+    def process_split(ds):
+        return [(elem[src_col], elem[target_col]) for elem in ds]
+
+    val = process_split(val_test_dataset["train"])
+    test = process_split(val_test_dataset["test"])
+
+    return {"train": [], "validation": val, "test": test}
 
 
 def load_daily_dialog(tokenizer, dataset_name):
@@ -256,8 +274,8 @@ def load_amazon_reviews_multi(dataset_name, dataset_config):
 
 def prep_dataset(
     dataset_name,
-    dataset_config,
-    tokenizer,
+    dataset_config: Optional[str] = None,
+    tokenizer: Optional["PreTrainedTokenizer"] = None,
     train_max_size=-1,
     validation_max_size=-1,
     test_max_size=-1,
@@ -271,7 +289,9 @@ def prep_dataset(
     "source", "target"
     """
 
-    if dataset_name == "daily_dialog":
+    if os.path.isfile(dataset_name) and dataset_name.endswith(".csv"):
+        dataset = load_local_textattack_csv_dataset(dataset_name)
+    elif dataset_name == "daily_dialog":
         dataset = load_daily_dialog(
             tokenizer,
             dataset_name,

@@ -9,3 +9,5 @@ sacremoses
 pandas
 numpy
 mauve-text
+sacrebleu
+bert_score

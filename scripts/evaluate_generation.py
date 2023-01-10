@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from Todd import (
     ScorerType,
-    MahalanobisFilter,
+    MahalanobisScorer,
     SequenceRenyiNegScorer,
     BeamRenyiInformationProjection,
 )
@@ -33,20 +33,15 @@ def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
     parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-de-en")
 
-    config_choices: List[str] = list(DATASETS_CONFIGS.keys())
 
     parser.add_argument(
         "--in_config",
         type=str,
-        default="tatoeba_mt_deu_eng",
-        choices=config_choices,
     )
     parser.add_argument(
         "--out_configs",
         type=str,
         nargs="+",
-        default=["wmt16_de_en"],
-        choices=config_choices,
     )
 
     parser.add_argument("--batch_size", type=int, default=2)
@@ -101,7 +96,6 @@ if __name__ == "__main__":
 
     detectors: List[ScorerType] = [
         SequenceRenyiNegScorer(
-            threshold=0.5,
             alpha=1.5,
             mode="token",  # input, output, token
             num_return_sequences=args.num_return_sequences,
