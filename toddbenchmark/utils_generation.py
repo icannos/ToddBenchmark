@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Optional, Callable
 import torch
 from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
-import evaluate
 
 from Todd import ScorerType
 
@@ -95,7 +94,7 @@ def evaluate_dataloader(
         for score_name in detector.score_names
     }
 
-    print(records)
+    # print(records)
     records["likelihood"] = []
 
     for batch_idx, batch in enumerate(data_loader):
@@ -163,13 +162,16 @@ def evaluate_dataloader(
                 records[k] = []
             records[k].extend(v)
 
-        sequences_scores = output.sequences_scores.view(
-            output.sequences_scores.shape[0] // num_return_sequences,
-            num_return_sequences,
-        ).tolist()
+        if "sequences_scores" in output:
+            sequences_scores = output.sequences_scores.view(
+                output.sequences_scores.shape[0] // num_return_sequences,
+                num_return_sequences,
+            ).tolist()
+        else:
+            sequences_scores = [0.0]*len(batch)   # TODO: fix this
 
         records["likelihood"].extend(sequences_scores)
-        print(records)
+        # print(records)
 
     return records
 

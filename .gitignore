@@ -1,6 +1,7 @@
 # Ignoring JeanZay bash scripts
 bash.*
 output/*
+output/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -81,6 +82,7 @@ target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
+notebooks/
 
 # IPython
 profile_default/

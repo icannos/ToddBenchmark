@@ -5,14 +5,16 @@ from typing import List
 
 import torch
 from tqdm import tqdm
+import configue
 
 from Todd import (
     ScorerType,
     MahalanobisScorer,
+    CosineProjectionScorer,
     SequenceRenyiNegScorer,
     BeamRenyiInformationProjection,
 )
-from toddbenchmark.generation_datasets import prep_model
+
 from toddbenchmark.generation_datasets_configs import (
     DATASETS_CONFIGS,
     load_requested_dataset,
@@ -45,7 +47,7 @@ def parse_args():
     )
 
     parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--num_return_sequences", type=int, default=4)
+    parser.add_argument("--num_return_sequences", type=int, default=1)
 
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)
@@ -54,13 +56,13 @@ def parse_args():
     parser.add_argument(
         "--validation_size",
         type=int,
-        default=30,
+        default=100,
         help="Max size of validation set used as reference to fit detectors",
     )
     parser.add_argument(
         "--test_size",
         type=int,
-        default=30,
+        default=300,
         help="Max size of test set to evaluate detectors",
     )
 
@@ -74,45 +76,57 @@ def parse_args():
         default=False,
         help="Append to existing results",
     )
+    parser.add_argument(
+        "--model_config_path",
+        type=str,
+    )
     return parser.parse_args()
-
-
-# detectors: List[FilterType] = [MahalanobisFilter(threshold=0.5, layers=[-1])]
 
 
 if __name__ == "__main__":
     args = parse_args()
+    config: dict = configue.load(args.model_config_path)
 
-    bleuscorer = BLEU(effective_order=True)
-    bertscorer = BERTScorer(lang="en", rescale_with_baseline=True)
+    # Load model
+    model = config["model"]
+    tokenizer = config["tokenizer"]
+
+    bertscorer: BERTScorer = config["bert"]
+    bleuscorer: BLEU = config["bleu"]
+
+
+
+    # bleuscorer = BLEU(effective_order=True)
+    # bertscorer = BERTScorer(lang="en", rescale_with_baseline=True)
+    # Load model and tokenizer
+    # model, tokenizer = prep_model(args.model_name)
 
     def metric_eval(prediction, reference):
         bleu = bleuscorer.sentence_score(hypothesis=prediction, references=[reference])
         bert = bertscorer.score([prediction], [reference])
         return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
 
-    # Load model and tokenizer
-    model, tokenizer = prep_model(args.model_name)
-
     detectors: List[ScorerType] = [
         SequenceRenyiNegScorer(
-            alpha=1.5,
-            mode="token",  # input, output, token
+            alpha=a,
+            temperature=t,
+            mode="input",  # mode="token",  # input, output, token
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
         )
         for t in [0.5, 1, 1.5, 2]
-        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
+        for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
     ]
 
+    # detectors.append(MahalanobisScorer(layers=[-1]))
+    # detectors.append(CosineProjectionScorer(layers=[-1]))
 
-        # BeamRenyiInformationProjection(
-        #     threshold=0.5,
-        #     alpha=1.5,
-        #     num_return_sequences=args.num_return_sequences,
-        #     num_beams=args.num_return_sequences,
-        #     mode="output",
-        # )
+    # detectors.append(BeamRenyiInformationProjection(
+    #     alpha=1.5,
+    #     num_return_sequences=args.num_return_sequences,
+    #     num_beams=args.num_return_sequences,
+    #     mode="output",
+    # ))
 
     # Load the reference set
     _, validation_loader, test_loader = load_requested_dataset(
@@ -138,7 +152,7 @@ if __name__ == "__main__":
         detectors,
         num_beams=args.num_return_sequences,
         num_return_sequences=args.num_return_sequences,
-        max_length=150,
+        max_length=200,
         metric_eval=metric_eval,
     )
 
