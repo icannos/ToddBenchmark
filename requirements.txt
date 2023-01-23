@@ -11,3 +11,4 @@ numpy
 mauve-text
 sacrebleu
 bert_score
+configue
