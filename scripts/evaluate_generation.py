@@ -94,13 +94,6 @@ if __name__ == "__main__":
     bertscorer: BERTScorer = config["bert"]
     bleuscorer: BLEU = config["bleu"]
 
-
-
-    # bleuscorer = BLEU(effective_order=True)
-    # bertscorer = BERTScorer(lang="en", rescale_with_baseline=True)
-    # Load model and tokenizer
-    # model, tokenizer = prep_model(args.model_name)
-
     def metric_eval(prediction, reference):
         bleu = bleuscorer.sentence_score(hypothesis=prediction, references=[reference])
         bert = bertscorer.score([prediction], [reference])
@@ -114,19 +107,19 @@ if __name__ == "__main__":
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
         )
-        for t in [0.5, 1, 1.5, 2]
+        for t in [0.5, 1, 1.5, 2, 5]
         for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
     ]
 
-    # detectors.append(MahalanobisScorer(layers=[-1]))
-    # detectors.append(CosineProjectionScorer(layers=[-1]))
+    detectors.append(MahalanobisScorer(layers=[-1]))
+    detectors.append(CosineProjectionScorer(layers=[-1]))
 
-    # detectors.append(BeamRenyiInformationProjection(
-    #     alpha=1.5,
-    #     num_return_sequences=args.num_return_sequences,
-    #     num_beams=args.num_return_sequences,
-    #     mode="output",
-    # ))
+    detectors.extend([BeamRenyiInformationProjection(
+        alpha=1.5,
+        num_return_sequences=args.num_return_sequences,
+        num_beams=args.num_return_sequences,
+        mode="output",
+    ) for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
 
     # Load the reference set
     _, validation_loader, test_loader = load_requested_dataset(
