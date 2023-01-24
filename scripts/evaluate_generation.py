@@ -46,7 +46,7 @@ def parse_args():
         nargs="+",
     )
 
-    parser.add_argument("--batch_size", type=int, default=2)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--num_return_sequences", type=int, default=1)
 
     parser.add_argument("--max_length", type=int, default=150)
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     detectors.append(CosineProjectionScorer(layers=[-1]))
 
     detectors.extend([BeamRenyiInformationProjection(
-        alpha=1.5,
+        alpha=a,
         num_return_sequences=args.num_return_sequences,
         num_beams=args.num_return_sequences,
         mode="output",

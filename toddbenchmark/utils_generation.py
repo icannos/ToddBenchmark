@@ -91,7 +91,7 @@ def evaluate_dataloader(
     records: Dict[str, List] = {
         f"{detector}+{score_name}": []
         for detector in detectors
-        for score_name in detector.score_names
+        for score_name in (detector.score_names if len(detector.score_names) > 0 else ["score"])
     }
 
     # print(records)
