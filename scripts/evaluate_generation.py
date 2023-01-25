@@ -91,15 +91,16 @@ if __name__ == "__main__":
     model = config["model"]
     tokenizer = config["tokenizer"]
 
-    bertscorer: BERTScorer = config["bert"]
-    bleuscorer: BLEU = config["bleu"]
+    bertscorer: BERTScorer = config["bert_scorer"]
+    bleuscorer: BLEU = config["bleu_scorer"]
 
     def metric_eval(prediction, reference):
         bleu = bleuscorer.sentence_score(hypothesis=prediction, references=[reference])
         bert = bertscorer.score([prediction], [reference])
         return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
 
-    detectors: List[ScorerType] = [
+    detectors:  List[ScorerType] = config["detectors"]
+    detectors.append([
         SequenceRenyiNegScorer(
             alpha=a,
             temperature=t,
@@ -109,10 +110,7 @@ if __name__ == "__main__":
         )
         for t in [0.5, 1, 1.5, 2, 5]
         for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
-    ]
-
-    detectors.append(MahalanobisScorer(layers=[-1]))
-    detectors.append(CosineProjectionScorer(layers=[-1]))
+    ])
 
     detectors.extend([BeamRenyiInformationProjection(
         alpha=a,

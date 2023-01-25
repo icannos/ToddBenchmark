@@ -1,11 +1,11 @@
-bert:
-  (): scripts.configs.wrapper.BERTScorerWrapper
+bert_scorer:
+  (): bert_score.BERTScorer
   lang: "en"
   rescale_with_baseline: True
   model_type: "bert-base-uncased"
 
-bleu:
-  (): scripts.configs.wrapper.BLEUWrapper
+bleu_scorer:
+  (): sacrebleu.BLEU
   trg_lang: ""
   effective_order: True
 
@@ -17,3 +17,9 @@ model:
 tokenizer:
   (): scripts.configs.wrapper.AutoTokenizerWrapper
   pretrained_model_name_or_path: "t5-base"
+
+detectors:
+  - (): Todd.MahalanobisScorer
+    layers: [-1]
+  - (): Todd.CosineProjectionScorer
+    layers: [-1]
