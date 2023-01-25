@@ -114,7 +114,7 @@ def evaluate_dataloader(
             max_length=max_length,
             num_beams=num_beams,
             num_return_sequences=num_return_sequences,
-            num_beam_groups=num_beams,
+            num_beam_groups=1,
             early_stopping=True,
             return_dict_in_generate=True,
             output_scores=True,
