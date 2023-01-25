@@ -12,6 +12,7 @@ from Todd import (
     MahalanobisScorer,
     CosineProjectionScorer,
     SequenceRenyiNegScorer,
+    SequenceRenyiNegDataFittedScorer,
     BeamRenyiInformationProjection,
 )
 
@@ -100,7 +101,15 @@ if __name__ == "__main__":
         return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
 
     detectors:  List[ScorerType] = config["detectors"]
-    detectors.append([
+    detectors.append(SequenceRenyiNegDataFittedScorer(
+            alpha=2,
+            temperature=1,
+            mode="input",  # mode="token",  # input, output, token
+            num_return_sequences=args.num_return_sequences,
+            num_beam=args.num_return_sequences,
+        ))
+
+    detectors.extend([
         SequenceRenyiNegScorer(
             alpha=a,
             temperature=t,
