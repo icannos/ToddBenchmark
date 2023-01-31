@@ -4,7 +4,6 @@ from typing import List, Dict, Any, Optional, Callable
 import torch
 from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
-import evaluate
 
 from Todd import ScorerType
 
@@ -92,10 +91,10 @@ def evaluate_dataloader(
     records: Dict[str, List] = {
         f"{detector}+{score_name}": []
         for detector in detectors
-        for score_name in detector.score_names
+        for score_name in (detector.score_names if len(detector.score_names) > 0 else ["score"])
     }
 
-    print(records)
+    # print(records)
     records["likelihood"] = []
 
     for batch_idx, batch in enumerate(data_loader):
@@ -115,7 +114,7 @@ def evaluate_dataloader(
             max_length=max_length,
             num_beams=num_beams,
             num_return_sequences=num_return_sequences,
-            num_beam_groups=num_beams,
+            num_beam_groups=1,
             early_stopping=True,
             return_dict_in_generate=True,
             output_scores=True,
@@ -163,13 +162,16 @@ def evaluate_dataloader(
                 records[k] = []
             records[k].extend(v)
 
-        sequences_scores = output.sequences_scores.view(
-            output.sequences_scores.shape[0] // num_return_sequences,
-            num_return_sequences,
-        ).tolist()
+        if "sequences_scores" in output:
+            sequences_scores = output.sequences_scores.view(
+                output.sequences_scores.shape[0] // num_return_sequences,
+                num_return_sequences,
+            ).tolist()
+        else:
+            sequences_scores = [0.0]*len(batch)   # TODO: fix this
 
         records["likelihood"].extend(sequences_scores)
-        print(records)
+        # print(records)
 
     return records
 

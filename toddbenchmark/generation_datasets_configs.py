@@ -1,6 +1,6 @@
 from typing import Dict
+import os
 
-import torch
 from torch.utils.data import DataLoader
 from .generation_datasets import prep_dataset
 
@@ -52,23 +52,30 @@ def load_requested_dataset(
     test_size: int = 3000,
 ):
 
-    datasets = {}
+    if os.path.isfile(config_name) and config_name.endswith(".csv"):
+        train_dataset, validation_dataset, test_dataset = prep_dataset(
+            config_name,
+            train_max_size=train_size,
+            validation_max_size=validation_size,
+            test_max_size=test_size,
+        )
 
-    if config_name not in DATASETS_CONFIGS:
+    elif config_name in DATASETS_CONFIGS:
+
+        config = DATASETS_CONFIGS[config_name]
+        train_dataset, validation_dataset, test_dataset = prep_dataset(
+            config["dataset_name"],
+            config["dataset_config"],
+            tokenizer,
+            train_max_size=train_size,
+            validation_max_size=validation_size,
+            test_max_size=test_size,
+        )
+    else:
         raise ValueError(
             f"Invalid dataset config name: {config_name}. "
             f"Available configs: {list(DATASETS_CONFIGS.keys())}"
         )
-
-    config = DATASETS_CONFIGS[config_name]
-    train_dataset, validation_dataset, test_dataset = prep_dataset(
-        config["dataset_name"],
-        config["dataset_config"],
-        tokenizer,
-        train_max_size=train_size,
-        validation_max_size=validation_size,
-        test_max_size=test_size,
-    )
 
     train_loader = DataLoader(
         train_dataset,
