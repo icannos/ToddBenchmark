@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 from Todd import (
     ScorerType,
-    MahalanobisFilter,
+    MahalanobisScorer,
     SequenceRenyiNegScorer,
     BeamRenyiInformationProjection,
 )
@@ -27,6 +27,7 @@ from sacrebleu import BLEU
 from bert_score import BERTScorer
 
 from toddbenchmark.utils import dump_json
+
 
 
 def parse_args():
@@ -101,7 +102,6 @@ if __name__ == "__main__":
 
     detectors: List[ScorerType] = [
         SequenceRenyiNegScorer(
-            threshold=0.5,
             alpha=1.5,
             mode="token",  # input, output, token
             num_return_sequences=args.num_return_sequences,
@@ -121,6 +121,7 @@ if __name__ == "__main__":
         # )
 
     # Load the reference set
+
     _, validation_loader, test_loader = load_requested_dataset(
         args.in_config,
         tokenizer,
@@ -160,6 +161,7 @@ if __name__ == "__main__":
 
     # Evaluate the model on the (in) test set
     print("Evaluating on the in-distribution test set")
+
     records = evaluate_dataloader(
         model,
         test_loader,
@@ -167,7 +169,7 @@ if __name__ == "__main__":
         detectors,
         num_beams=args.num_return_sequences,
         num_return_sequences=args.num_return_sequences,
-        max_length=150,
+        max_length=50,
         metric_eval=metric_eval,
     )
 

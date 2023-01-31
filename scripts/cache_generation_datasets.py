@@ -1,6 +1,8 @@
 from toddbenchmark.generation_datasets_configs import DATASETS_CONFIGS
 from toddbenchmark.generation_datasets import prep_dataset, prep_model
 
+import traceback
+
 if __name__ == "__main__":
     model, tokenizer = prep_model("t5-small")
 
@@ -23,4 +25,5 @@ if __name__ == "__main__":
             print(v)
             print("\033[0m")
             print(e)
+            print(traceback.format_exc())
             pass

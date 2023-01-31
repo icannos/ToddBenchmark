@@ -1,7 +1,9 @@
+import random
 from typing import Tuple
 
 from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
+
 from .utils_generation import try_load_dataset_config
 
 
@@ -254,6 +256,397 @@ def load_amazon_reviews_multi(dataset_name, dataset_config):
     return {"train": train, "validation": val, "test": test}
 
 
+## Question Answering Datasets
+
+
+def load_openbookqa_dataset(dataset_name, dataset_config):
+    # dataset config: answerable, unanswerable
+
+    dataset = load_dataset("openbookqa", "additional")
+
+    def mk_input(x):
+        txt = f"Context:{x['fact1']} ; Question: {x['question_stem']} ; Choices: {'- '.join(x['choices']['text'])}"
+        return txt
+
+    def mk_target(x):
+        idx_answer = x["choices"]["label"].index(x["answerKey"])
+        return x["choices"]["label"][idx_answer]
+
+    all_possible_answers = {}
+    for split in dataset:
+        all_possible_answers[split] = []
+        for x in dataset[split]:
+            all_possible_answers[split].extend(x["choices"]["text"])
+
+    def remplace_answer_by_random(x):
+        answer_key = x["answerKey"]
+        idx_answer = x["choices"]["label"].index(answer_key)
+        good_answer = x["choices"]["text"][idx_answer]
+
+        random_answer = random.choice(all_possible_answers[split])
+        while random_answer == good_answer:
+            random_answer = random.choice(all_possible_answers[split])
+        x["choices"]["text"][idx_answer] = random_answer
+
+        return x
+
+    if dataset_config == "answerable":
+        dataset = {
+            split: [(mk_input(x), mk_target(x)) for x in dataset[split]]
+            for split in dataset
+        }
+    elif dataset_config == "unanswerable":
+        altered_dataset = {
+            split: [remplace_answer_by_random(x) for x in dataset[split]]
+            for split in dataset
+        }
+        dataset = {
+            split: [(mk_input(x), "None") for x in altered_dataset[split]]
+            for split in altered_dataset
+        }
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be answerable or unanswerable"
+        )
+
+    return dataset
+
+
+def load_ai2arc(dataset_name, dataset_config):
+    answerable, config = dataset_config.split("_")
+
+    dataset = load_dataset("ai2_arc", config, ignore_verifications=True)
+
+    def mk_input(x):
+        txt = f"Context: ; Question: {x['question']} ; Choices: {'- '.join(x['choices']['text'])}"
+        return txt
+
+    def mk_target(x):
+        answer_key = x["answerKey"]
+        idx_answer = x["choices"]["label"].index(answer_key)
+        return x["choices"]["label"][idx_answer]
+
+    all_possible_answers = {}
+    for split in dataset:
+        all_possible_answers[split] = []
+        for x in dataset[split]:
+            all_possible_answers[split].extend(x["choices"]["text"])
+
+    def remplace_answer_by_random(x):
+        answer_key = x["answerKey"]
+        idx_answer = x["choices"]["label"].index(answer_key)
+        good_answer = x["choices"]["text"][idx_answer]
+
+        random_answer = random.choice(all_possible_answers[split])
+        while random_answer == good_answer:
+            random_answer = random.choice(all_possible_answers[split])
+        x["choices"]["text"][idx_answer] = random_answer
+
+        return x
+
+    if answerable == "answerable":
+        dataset = {
+            split: [(mk_input(x), mk_target(x)) for x in dataset[split]]
+            for split in dataset
+        }
+    elif answerable == "unanswerable":
+        altered_dataset = {
+            split: [remplace_answer_by_random(x) for x in dataset[split]]
+            for split in dataset
+        }
+        dataset = {
+            split: [(mk_input(x), "None") for x in altered_dataset[split]]
+            for split in altered_dataset
+        }
+
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be answerable or unanswerable"
+        )
+
+    return dataset
+
+
+def load_sciq(dataset_name, dataset_config):
+    # dataset config: answerable, unanswerable)
+
+    dataset = load_dataset("sciq", "additional")
+
+    def mk_input(x):
+        choices = [
+            x["distractor1"],
+            x["distractor2"],
+            x["distractor3"],
+            x["correct_answer"],
+        ]
+        # shuffle
+        random.shuffle(choices)
+
+        txt = f"Context:{x['support']} ; Question: {x['question']} ; Choices: {'- '.join(choices)}"
+        return txt
+
+    def mk_target(x):
+        return x["correct_answer"]
+
+    all_possible_answers = {}
+    for split in dataset:
+        all_possible_answers[split] = []
+        for x in dataset[split]:
+            all_possible_answers[split].extend(
+                [
+                    x["distractor1"],
+                    x["distractor2"],
+                    x["distractor3"],
+                    x["correct_answer"],
+                ]
+            )
+
+    def remplace_answer_by_random(x):
+        good_answer = x["correct_answer"]
+        random_answer = random.choice(all_possible_answers[split])
+        while random_answer == good_answer:
+            random_answer = random.choice(all_possible_answers[split])
+        x["correct_answer"] = random_answer
+
+        return x
+
+    if dataset_config == "answerable":
+        dataset = {
+            split: [(mk_input(x), mk_target(x)) for x in dataset[split]]
+            for split in dataset
+        }
+    elif dataset_config == "unanswerable":
+        altered_dataset = {
+            split: [remplace_answer_by_random(x) for x in dataset[split]]
+            for split in dataset
+        }
+        dataset = {
+            split: [(mk_input(x), "None") for x in altered_dataset[split]]
+            for split in altered_dataset
+        }
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be answerable or unanswerable"
+        )
+
+    return dataset
+
+
+def load_tweetqa(dataset_name, dataset_config):
+    dataset = load_dataset("tweet_qa", ignore_verifications=True)
+
+    def mk_input(x):
+        txt = f"Context:{x['Tweet']} ; Question: {x['Question']}"
+        return txt
+
+    def mk_target(x):
+        return x["Answer"][0]
+
+    all_possible_answers = {}
+    for split in dataset:
+        all_possible_answers[split] = []
+        for x in dataset[split]:
+            all_possible_answers[split].extend(x["Answer"])
+
+    def remplace_answer_by_random(x):
+        good_answer = x["Answer"][0]
+        random_answer = random.choice(all_possible_answers[split])
+        while random_answer == good_answer:
+            random_answer = random.choice(all_possible_answers[split])
+        x["Answer"][0] = random_answer
+
+        return x
+
+    if dataset_config == "answerable":
+        dataset = {
+            split: [(mk_input(x), mk_target(x)) for x in dataset[split]]
+            for split in dataset
+        }
+    elif dataset_config == "unanswerable":
+        altered_dataset = {
+            split: [remplace_answer_by_random(x) for x in dataset[split]]
+            for split in dataset
+        }
+        dataset = {
+            split: [(mk_input(x), "None") for x in altered_dataset[split]]
+            for split in altered_dataset
+        }
+
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be answerable or unanswerable"
+        )
+
+    return dataset
+
+
+def load_quartz(dataset_name, dataset_config):
+    dataset = load_dataset("quartz", ignore_verifications=True)
+
+    def mk_input(x):
+        txt = f"Context:{x['para']} ; Question: {'- '.join(x['choices']['text'])}"
+        return txt
+
+    def mk_target(x):
+        idx_answer = x["choices"]["label"].index(x["answerKey"])
+        return x["choices"]["label"][idx_answer]
+
+    all_possible_answers = {}
+    for split in dataset:
+        all_possible_answers[split] = []
+        for x in dataset[split]:
+            all_possible_answers[split].extend(x["choices"]["text"])
+
+    def remplace_answer_by_random(x):
+        answer_key = x["answerKey"]
+        idx_answer = x["choices"]["label"].index(answer_key)
+        good_answer = x["choices"]["text"][idx_answer]
+
+        random_answer = random.choice(all_possible_answers[split])
+        while random_answer == good_answer:
+            random_answer = random.choice(all_possible_answers[split])
+        x["choices"]["text"][idx_answer] = random_answer
+
+        return x
+
+    if dataset_config == "answerable":
+        dataset = {
+            split: [(mk_input(x), mk_target(x)) for x in dataset[split]]
+            for split in dataset
+        }
+
+    elif dataset_config == "unanswerable":
+        altered_dataset = {
+            split: [remplace_answer_by_random(x) for x in dataset[split]]
+            for split in dataset
+        }
+        dataset = {
+            split: [(mk_input(x), "None") for x in altered_dataset[split]]
+            for split in altered_dataset
+        }
+
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be answerable or unanswerable"
+        )
+
+    return dataset
+
+
+def load_squadv2(dataset_name, dataset_config):
+    # dataset config: answerable, unanswerable)
+
+    dataset = load_dataset("squad_v2")
+
+    def mk_input(x):
+        txt = f"Context:{x['context']} ; Question: {x['question']}"
+        return txt
+
+    def mk_target(x):
+        has_answer = len(x["answers"]["answer_start"]) > 0
+        return None if not has_answer else x["answers"]["text"][0]
+
+    if dataset_config == "answerable":
+        # filter out examples without answer
+        dataset = {
+            split: [
+                (mk_input(x), mk_target(x))
+                for x in dataset[split]
+                if mk_target(x) is not None
+            ]
+            for split in dataset
+        }
+    elif dataset_config == "unanswerable":
+        # filter out examples with answer
+        dataset = {
+            split: [
+                (mk_input(x), "None") for x in dataset[split] if mk_target(x) is None
+            ]
+            for split in dataset
+        }
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be answerable or unanswerable"
+        )
+
+    train = dataset["train"]
+    val = dataset["validation"]
+
+    dataset = {
+        "train": train[:-5000],
+        "validation": val[:3000] + train[-5000:],
+        "test": val[3000:],
+    }
+
+    return dataset
+
+
+def load_cuad(dataset_name, dataset_config):
+    dataset = load_dataset("cuad")
+
+    def mk_input(x):
+        txt = f"Context:{x['context']} ; Question: {x['question']}"
+        return txt
+
+    def mk_target(x):
+        return x["answers"]["text"][0]
+
+    all_possible_answers = {}
+    for split in dataset:
+        all_possible_answers[split] = []
+        for x in dataset[split]:
+            all_possible_answers[split].extend(x["answers"]["text"])
+
+    def remplace_answer_by_random(x):
+        if len(x["answers"]["text"]) > 0:
+            good_answer = x["answers"]["text"][0]
+        else:
+            good_answer = None
+
+        random_answer = random.choice(all_possible_answers[split])
+        while random_answer == good_answer:
+            random_answer = random.choice(all_possible_answers[split])
+
+        if good_answer is not None:
+            x["answers"]["text"][0] = random_answer
+        else:
+            x["answers"]["text"].append(random_answer)
+
+        return x
+
+    if dataset_config == "answerable":
+        dataset = {
+            split: [(mk_input(x), mk_target(x)) for x in dataset[split]]
+            for split in dataset
+        }
+    elif dataset_config == "unanswerable":
+        altered_dataset = {
+            split: [remplace_answer_by_random(x) for x in dataset[split]]
+            for split in dataset
+        }
+        dataset = {
+            split: [(mk_input(x), "None") for x in altered_dataset[split]]
+            for split in altered_dataset
+        }
+
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be answerable or unanswerable"
+        )
+
+    train = dataset["train"]
+    val = dataset["validation"]
+
+    # Correct some sizes
+    dataset = {
+        "train": train[:-1500],
+        "validation": val[:1500] + train[-1500:],
+        "test": val[1500:],
+    }
+
+    return dataset
+
+
 def prep_dataset(
     dataset_name,
     dataset_config,
@@ -324,6 +717,46 @@ def prep_dataset(
             dataset_name,
             dataset_config,
         )
+
+    elif dataset_name == "openbookqa":
+        dataset = load_openbookqa_dataset(
+            dataset_name,
+            dataset_config,
+        )
+    elif dataset_name == "squad_v2":
+        dataset = load_squadv2(
+            dataset_name,
+            dataset_config,
+        )
+    elif dataset_name == "cuad":
+        dataset = load_cuad(
+            dataset_name,
+            dataset_config,
+        )
+
+    elif dataset_name == "ai2_arc":
+        dataset = load_ai2arc(
+            dataset_name,
+            dataset_config,
+        )
+
+    elif dataset_name == "sciq":
+        dataset = load_sciq(
+            dataset_name,
+            dataset_config,
+        )
+
+    elif dataset_name == "tweetqa":
+        dataset = load_tweetqa(
+            dataset_name,
+            dataset_config,
+        )
+    elif dataset_name == "quartz":
+        dataset = load_quartz(
+            dataset_name,
+            dataset_config,
+        )
+
     else:
         raise ValueError("Dataset not supported")
 

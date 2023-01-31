@@ -42,6 +42,91 @@ DATASETS_CONFIGS["tatoeba_mt_cat_eng"] = BASE_CONFIG | {
     "dataset_config": "cat-eng",
 }
 
+###### Question Answering ######
+
+DATASETS_CONFIGS["openbookqa_answerable"] = BASE_CONFIG | {
+    "dataset_name": "openbookqa",
+    "dataset_config": "answerable",
+}
+
+DATASETS_CONFIGS["openbookqa_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "openbookqa",
+    "dataset_config": "unanswerable",
+}
+
+DATASETS_CONFIGS["ai2arcchallenge_answerable"] = BASE_CONFIG | {
+    "dataset_name": "ai2_arc",
+    "dataset_config": "answerable_ARC-Challenge",
+}
+
+DATASETS_CONFIGS["ai2arceasy_answerable"] = BASE_CONFIG | {
+    "dataset_name": "ai2_arc",
+    "dataset_config": "answerable_ARC-Easy",
+}
+
+DATASETS_CONFIGS["ai2arcchallenge_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "ai2_arc",
+    "dataset_config": "unanswerable_ARC-Challenge",
+}
+
+DATASETS_CONFIGS["ai2arceasy_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "ai2_arc",
+    "dataset_config": "unanswerable_ARC-Easy",
+}
+
+
+DATASETS_CONFIGS["sciq_answerable"] = BASE_CONFIG | {
+    "dataset_name": "sciq",
+
+    "dataset_config": "answerable",
+}
+
+DATASETS_CONFIGS["sciq_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "sciq",
+    "dataset_config": "unanswerable",
+}
+
+DATASETS_CONFIGS["tweetqa_answerable"] = BASE_CONFIG | {
+    "dataset_name": "tweetqa",
+    "dataset_config": "answerable",
+}
+
+DATASETS_CONFIGS["tweetqa_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "tweetqa",
+    "dataset_config": "unanswerable",
+}
+
+DATASETS_CONFIGS["quartz_answerable"] = BASE_CONFIG | {
+    "dataset_name": "quartz",
+    "dataset_config": "answerable",
+}
+
+DATASETS_CONFIGS["quartz_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "quartz",
+    "dataset_config": "unanswerable",
+}
+
+DATASETS_CONFIGS["squad_v2_answerable"] = BASE_CONFIG | {
+    "dataset_name": "squad_v2",
+    "dataset_config": "answerable",
+}
+
+DATASETS_CONFIGS["squad_v2_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "squad_v2",
+    "dataset_config": "unanswerable",
+}
+
+
+# DATASETS_CONFIGS["cuad_answerable"] = BASE_CONFIG | {
+#     "dataset_name": "cuad",
+#     "dataset_config": "answerable",
+# }
+#
+# DATASETS_CONFIGS["cuad_unanswerable"] = BASE_CONFIG | {
+#     "dataset_name": "cuad",
+#     "dataset_config": "unanswerable",
+# }
+
 
 def load_requested_dataset(
     config_name: str,

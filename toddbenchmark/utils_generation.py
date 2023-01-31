@@ -95,7 +95,6 @@ def evaluate_dataloader(
         for score_name in detector.score_names
     }
 
-    print(records)
     records["likelihood"] = []
 
     for batch_idx, batch in enumerate(data_loader):
@@ -169,7 +168,6 @@ def evaluate_dataloader(
         ).tolist()
 
         records["likelihood"].extend(sequences_scores)
-        print(records)
 
     return records
 
