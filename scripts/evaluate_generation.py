@@ -79,7 +79,7 @@ if __name__ == "__main__":
         experiment_args.validation_size,
         experiment_args.test_size,
     )
-    idf = prepare_idf(tokenizer, validation_loader)
+    idf = prepare_idf(tokenizer, model, validation_loader)
 
     detectors:  List[ScorerType] = config["detectors"]
     detectors.extend([SequenceRenyiNegDataFittedScorer(

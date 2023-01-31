@@ -1,6 +1,7 @@
 from collections import defaultdict, Counter
 from math import log
 from typing import List, Dict, Any, Optional, Callable
+from tqdm import tqdm
 
 import torch
 from datasets import load_dataset, DatasetDict
@@ -12,15 +13,25 @@ from Todd import ScorerType
 
 def prepare_idf(
         tokenizer,
+        model,
         loader: DataLoader,
 ):
+
     input_refs = []
     for batch in loader:
         inputs = tokenizer(
             batch["source"], padding=True, truncation=True, return_tensors="pt"
-        ).input_ids.tolist()
-        input_refs.extend(inputs)
+        )
+        input_refs.extend(inputs.input_ids.tolist())
 
+    # Mock generation to get the vocab size
+    inputs = inputs.to(model.device)
+    vocab_size = model.generate(input_ids=inputs["input_ids"],
+                                attention_mask=inputs["attention_mask"],
+                                max_length=16,
+                                return_dict_in_generate=True,
+                                output_scores=True,
+                                ).scores[0].shape[1]
     idf_count = Counter()
     num_docs = len(input_refs)
 
@@ -29,14 +40,18 @@ def prepare_idf(
     idf_dict = defaultdict(lambda: log((num_docs + 1) / (1)))
     idf_dict.update({idx: log((num_docs + 1) / (c + 1)) for (idx, c) in idf_count.items()})
 
-    idf = torch.ones(len(tokenizer.vocab), dtype=torch.float) * (log((num_docs + 1) / (0 + 1)))
+    idf = torch.ones(vocab_size, dtype=torch.float) * (log((num_docs + 1) / (0 + 1)))
     for idx, c in idf_dict.items():
         idf[idx] = c
     return idf / idf.sum()
 
 
 def prepare_detectors(
-        detectors: List[ScorerType], model, loader: DataLoader, tokenizer
+        detectors: List[ScorerType],
+        model,
+        loader: DataLoader,
+        tokenizer,
+        **kwargs
 ) -> List[ScorerType]:
     """
     Fit the detectors on the behavior of the model on the (in) validation set
@@ -47,7 +62,7 @@ def prepare_detectors(
     """
 
     with torch.no_grad():
-        for batch in loader:
+        for batch in tqdm(loader):
 
             inputs = tokenizer(
                 batch["source"], padding=True, truncation=True, return_tensors="pt"
@@ -59,9 +74,9 @@ def prepare_detectors(
             output = model.generate(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
-                max_length=200,
-                num_beams=4,
-                num_return_sequences=4,
+                max_length=kwargs.get("max_length", 200),
+                num_beams=kwargs.get("num_beams", 4),
+                num_return_sequences=kwargs.get("num_return_sequences", 4),
                 early_stopping=True,
                 return_dict_in_generate=True,
                 output_scores=True,
@@ -127,7 +142,7 @@ def evaluate_dataloader(
     # print(records)
     records["likelihood"] = []
 
-    for batch_idx, batch in enumerate(data_loader):
+    for batch_idx, batch in enumerate(tqdm(data_loader)):
 
         inputs = tokenizer(
             batch["source"], padding=True, truncation=True, return_tensors="pt"
