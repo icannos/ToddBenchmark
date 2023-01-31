@@ -265,7 +265,7 @@ def load_openbookqa_dataset(dataset_name, dataset_config):
     dataset = load_dataset("openbookqa", "additional")
 
     def mk_input(x):
-        txt = f"Context:{x['fact1']} ; Question: {x['question_stem']} ; Choices: {'- '.join(x['choices']['text'])}"
+        txt = f"Context:{x['fact1']} ; Question: {x['question_stem']} ; Choices: {' - '.join(x['choices']['text'])}"
         return txt
 
     def mk_target(x):
@@ -318,7 +318,7 @@ def load_ai2arc(dataset_name, dataset_config):
     dataset = load_dataset("ai2_arc", config, ignore_verifications=True)
 
     def mk_input(x):
-        txt = f"Context: ; Question: {x['question']} ; Choices: {'- '.join(x['choices']['text'])}"
+        txt = f"Context: ; Question: {x['question']} ; Choices: {' - '.join(x['choices']['text'])}"
         return txt
 
     def mk_target(x):
@@ -382,7 +382,7 @@ def load_sciq(dataset_name, dataset_config):
         # shuffle
         random.shuffle(choices)
 
-        txt = f"Context:{x['support']} ; Question: {x['question']} ; Choices: {'- '.join(choices)}"
+        txt = f"Context:{x['support']} ; Question: {x['question']} ; Choices: {' - '.join(choices)}"
         return txt
 
     def mk_target(x):
