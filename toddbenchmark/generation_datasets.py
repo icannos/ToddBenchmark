@@ -27,7 +27,7 @@ def load_local_textattack_csv_dataset(dataset_name: str,
 
     dataset = load_dataset("csv", data_files=dataset_name)
 
-    val_test_dataset = dataset["train"].train_test_split(test_size=0.5)
+    val_test_dataset = dataset["train"].train_test_split(test_size=0.5, shuffle=True, seed=42)
 
     def process_split(ds):
         return [(elem[src_col], elem[target_col]) for elem in ds]

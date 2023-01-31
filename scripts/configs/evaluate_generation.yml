@@ -13,6 +13,7 @@ bleu_scorer:
 model:
   (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
   pretrained_model_name_or_path: "t5-base"
+  # device_map: auto
 
 tokenizer:
   (): scripts.configs.wrapper.AutoTokenizerWrapper
@@ -23,3 +24,13 @@ detectors:
     layers: [-1]
   - (): Todd.CosineProjectionScorer
     layers: [-1]
+
+experiment_args:
+  (): scripts.configs.wrapper.ExperimentArgs
+  output_dir: !path "output/"
+  batch_size: 8
+  num_workers: 4
+  num_return_sequences: 4
+  seed: 42
+  append: true
+  device: "cpu"

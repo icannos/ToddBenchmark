@@ -1,5 +1,5 @@
 import argparse
-import json
+import os
 from pathlib import Path
 from typing import List
 
@@ -22,10 +22,9 @@ from toddbenchmark.generation_datasets_configs import (
 )
 from toddbenchmark.utils_generation import (
     prepare_detectors,
+    prepare_idf,
     evaluate_dataloader,
-    mk_file_name,
 )
-import evaluate
 from sacrebleu import BLEU
 from bert_score import BERTScorer
 
@@ -34,9 +33,6 @@ from toddbenchmark.utils import dump_json
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
-    parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-de-en")
-
-
     parser.add_argument(
         "--in_config",
         type=str,
@@ -47,38 +43,8 @@ def parse_args():
         nargs="+",
     )
 
-    parser.add_argument("--batch_size", type=int, default=8)
-    parser.add_argument("--num_return_sequences", type=int, default=1)
-
-    parser.add_argument("--max_length", type=int, default=150)
-    parser.add_argument("--seed", type=int, default=42)
-
-    # Dataset max sizes
     parser.add_argument(
-        "--validation_size",
-        type=int,
-        default=100,
-        help="Max size of validation set used as reference to fit detectors",
-    )
-    parser.add_argument(
-        "--test_size",
-        type=int,
-        default=300,
-        help="Max size of test set to evaluate detectors",
-    )
-
-    parser.add_argument(
-        "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
-    )
-    parser.add_argument("--output_dir", type=str, default="output")
-    parser.add_argument(
-        "--append",
-        action="store_true",
-        default=False,
-        help="Append to existing results",
-    )
-    parser.add_argument(
-        "--model_config_path",
+        "--experiment_config_path",
         type=str,
     )
     return parser.parse_args()
@@ -86,10 +52,14 @@ def parse_args():
 
 if __name__ == "__main__":
     args = parse_args()
-    config: dict = configue.load(args.model_config_path)
+    config: dict = configue.load(args.experiment_config_path)
 
     # Load model
+    experiment_args = config["experiment_args"]
     model = config["model"]
+    model.to(experiment_args.device)
+    model.eval()
+
     tokenizer = config["tokenizer"]
 
     bertscorer: BERTScorer = config["bert_scorer"]
@@ -100,22 +70,34 @@ if __name__ == "__main__":
         bert = bertscorer.score([prediction], [reference])
         return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
 
+    # Load the reference set
+    _, validation_loader, test_loader = load_requested_dataset(
+        args.in_config,
+        tokenizer,
+        experiment_args.batch_size,
+        0,
+        experiment_args.validation_size,
+        experiment_args.test_size,
+    )
+    idf = prepare_idf(tokenizer, validation_loader)
+
     detectors:  List[ScorerType] = config["detectors"]
-    detectors.append(SequenceRenyiNegDataFittedScorer(
-            alpha=2,
-            temperature=1,
-            mode="input",  # mode="token",  # input, output, token
-            num_return_sequences=args.num_return_sequences,
-            num_beam=args.num_return_sequences,
-        ))
+    detectors.extend([SequenceRenyiNegDataFittedScorer(
+        alpha=a,
+        temperature=t,
+        mode="input",  # mode="token",  # input, output, token
+        num_return_sequences=experiment_args.num_return_sequences,
+        num_beam=experiment_args.num_return_sequences,
+        reference_vocab_distribution=idf,
+    ) for t in [0.5, 1, 1.5, 2, 5] for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
 
     detectors.extend([
         SequenceRenyiNegScorer(
             alpha=a,
             temperature=t,
             mode="input",  # mode="token",  # input, output, token
-            num_return_sequences=args.num_return_sequences,
-            num_beam=args.num_return_sequences,
+            num_return_sequences=experiment_args.num_return_sequences,
+            num_beam=experiment_args.num_return_sequences,
         )
         for t in [0.5, 1, 1.5, 2, 5]
         for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
@@ -123,20 +105,10 @@ if __name__ == "__main__":
 
     detectors.extend([BeamRenyiInformationProjection(
         alpha=a,
-        num_return_sequences=args.num_return_sequences,
-        num_beams=args.num_return_sequences,
+        num_return_sequences=experiment_args.num_return_sequences,
+        num_beams=experiment_args.num_return_sequences,
         mode="output",
     ) for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
-
-    # Load the reference set
-    _, validation_loader, test_loader = load_requested_dataset(
-        args.in_config,
-        tokenizer,
-        args.batch_size,
-        0,
-        args.validation_size,
-        args.test_size,
-    )
 
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
@@ -150,19 +122,16 @@ if __name__ == "__main__":
         validation_loader,
         tokenizer,
         detectors,
-        num_beams=args.num_return_sequences,
-        num_return_sequences=args.num_return_sequences,
-        max_length=200,
+        num_beams=experiment_args.num_return_sequences,
+        num_return_sequences=experiment_args.num_return_sequences,
+        max_length=experiment_args.max_length,
         metric_eval=metric_eval,
     )
 
-    inval_ds_scores_path = Path(args.output_dir) / (
-        "validation_scores/"
-        + mk_file_name(args.model_name, args.in_config, args.in_config)
-    )
-    inval_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
-
-    dump_json(records, inval_ds_scores_path, append=args.append)
+    reference_file_name = args.in_config.split("/")[-1].split(".")[0]
+    dump_path = Path(os.path.join(experiment_args.output_dir, "validation_scores", f"{reference_file_name}.json"))
+    dump_path.parent.mkdir(parents=True, exist_ok=True)
+    dump_json(records, dump_path, append=experiment_args.append)
 
     # ====================== Evaluate the detectors on the (in) test set ====================== #
 
@@ -173,18 +142,16 @@ if __name__ == "__main__":
         test_loader,
         tokenizer,
         detectors,
-        num_beams=args.num_return_sequences,
-        num_return_sequences=args.num_return_sequences,
+        num_beams=experiment_args.num_return_sequences,
+        num_return_sequences=experiment_args.num_return_sequences,
         max_length=150,
         metric_eval=metric_eval,
     )
 
-    in_ds_scores_path = Path(args.output_dir) / (
-        "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
-    )
-    in_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
-
-    dump_json(records, in_ds_scores_path, append=args.append)
+    reference_file_name = args.in_config.split("/")[-1].split(".")[0]
+    dump_path = Path(os.path.join(experiment_args.output_dir, "test_scores", f"{reference_file_name}.json"))
+    dump_path.parent.mkdir(parents=True, exist_ok=True)
+    dump_json(records, dump_path, append=experiment_args.append)
 
     # ====================== Evaluate the detectors on the (out) test sets ====================== #
 
@@ -192,7 +159,7 @@ if __name__ == "__main__":
     for out_config in tqdm(args.out_configs):
         # Load the out-of-distribution set
         _, _, test_loader = load_requested_dataset(
-            out_config, tokenizer, args.batch_size, 0, 0, args.test_size
+            out_config, tokenizer, experiment_args.batch_size, 0, 0, experiment_args.test_size
         )
 
         # Evaluate the model on the (out) test set
@@ -202,15 +169,13 @@ if __name__ == "__main__":
             test_loader,
             tokenizer,
             detectors,
-            num_beams=args.num_return_sequences,
-            num_return_sequences=args.num_return_sequences,
+            num_beams=experiment_args.num_return_sequences,
+            num_return_sequences=experiment_args.num_return_sequences,
             max_length=150,
             metric_eval=metric_eval,
         )
 
-        out_ds_scores_path = Path(args.output_dir) / (
-            "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
-        )
-        out_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
-
-        dump_json(records, out_ds_scores_path, append=args.append)
+        reference_file_name = args.out_config.split("/")[-1].split(".")[0]
+        dump_path = Path(os.path.join(experiment_args.output_dir, "test_scores", f"{reference_file_name}.json"))
+        dump_path.parent.mkdir(parents=True, exist_ok=True)
+        dump_json(records, dump_path, append=experiment_args.append)

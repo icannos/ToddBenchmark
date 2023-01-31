@@ -1,15 +1,42 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
+from math import log
 from typing import List, Dict, Any, Optional, Callable
 
 import torch
 from datasets import load_dataset, DatasetDict
+from transformers.generation import BeamSearchEncoderDecoderOutput
 from torch.utils.data import DataLoader
 
 from Todd import ScorerType
 
 
+def prepare_idf(
+        tokenizer,
+        loader: DataLoader,
+):
+    input_refs = []
+    for batch in loader:
+        inputs = tokenizer(
+            batch["source"], padding=True, truncation=True, return_tensors="pt"
+        ).input_ids.tolist()
+        input_refs.extend(inputs)
+
+    idf_count = Counter()
+    num_docs = len(input_refs)
+
+    idf_count.update(sum([list(set(i)) for i in input_refs], []))
+
+    idf_dict = defaultdict(lambda: log((num_docs + 1) / (1)))
+    idf_dict.update({idx: log((num_docs + 1) / (c + 1)) for (idx, c) in idf_count.items()})
+
+    idf = torch.ones(len(tokenizer.vocab), dtype=torch.float) * (log((num_docs + 1) / (0 + 1)))
+    for idx, c in idf_dict.items():
+        idf[idx] = c
+    return idf / idf.sum()
+
+
 def prepare_detectors(
-    detectors: List[ScorerType], model, loader: DataLoader, tokenizer
+        detectors: List[ScorerType], model, loader: DataLoader, tokenizer
 ) -> List[ScorerType]:
     """
     Fit the detectors on the behavior of the model on the (in) validation set
@@ -19,30 +46,33 @@ def prepare_detectors(
     :return: List of fitted detectors
     """
 
-    for batch in loader:
+    with torch.no_grad():
+        for batch in loader:
 
-        inputs = tokenizer(
-            batch["source"], padding=True, truncation=True, return_tensors="pt"
-        )
-        labels = tokenizer(
-            batch["target"], padding=True, truncation=True, return_tensors="pt"
-        )
+            inputs = tokenizer(
+                batch["source"], padding=True, truncation=True, return_tensors="pt"
+            ).to(model.device)
+            labels = tokenizer(
+                batch["target"], padding=True, truncation=True, return_tensors="pt"
+            ).to(model.device)
 
-        inputs = {k: v.to(model.device) for k, v in inputs.items()}
-        output = model.generate(
-            input_ids=inputs["input_ids"],
-            attention_mask=inputs["attention_mask"],
-            max_length=100,
-            num_beams=4,
-            num_return_sequences=4,
-            early_stopping=True,
-            return_dict_in_generate=True,
-            output_scores=True,
-            output_hidden_states=True,
-        )
+            output = model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                max_length=200,
+                num_beams=4,
+                num_return_sequences=4,
+                early_stopping=True,
+                return_dict_in_generate=True,
+                output_scores=True,
+                output_hidden_states=True,
+            )
+            output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
+                v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
+                    v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
 
-        for detector in detectors:
-            detector.accumulate(output)
+            for detector in detectors:
+                detector.accumulate(output)
 
     for detector in detectors:
         detector.fit()
@@ -77,14 +107,14 @@ def evaluate_batch(output, detectors: List[ScorerType]) -> Dict[str, torch.Tenso
 
 
 def evaluate_dataloader(
-    model,
-    data_loader: DataLoader,
-    tokenizer,
-    detectors: List[ScorerType],
-    num_beams: int,
-    num_return_sequences: int,
-    max_length: int,
-    metric_eval: Optional[Callable] = None,
+        model,
+        data_loader: DataLoader,
+        tokenizer,
+        detectors: List[ScorerType],
+        num_beams: int,
+        num_return_sequences: int,
+        max_length: int,
+        metric_eval: Optional[Callable] = None,
 ) -> Dict[str, List]:
 
     # Initialize the scores dictionary
@@ -101,26 +131,30 @@ def evaluate_dataloader(
 
         inputs = tokenizer(
             batch["source"], padding=True, truncation=True, return_tensors="pt"
-        )
+        ).to(model.device)
         labels = tokenizer(
             batch["target"], padding=True, truncation=True, return_tensors="pt"
-        )
+        ).to(model.device)
 
-        inputs = {k: v.to(model.device) for k, v in inputs.items()}
+        # inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
-        output = model.generate(
-            input_ids=inputs["input_ids"],
-            attention_mask=inputs["attention_mask"],
-            max_length=max_length,
-            num_beams=num_beams,
-            num_return_sequences=num_return_sequences,
-            num_beam_groups=1,
-            early_stopping=True,
-            return_dict_in_generate=True,
-            output_scores=True,
-            output_hidden_states=True,
-        )
+        with torch.no_grad():
+            output = model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                max_length=max_length,
+                num_beams=num_beams,
+                num_return_sequences=num_return_sequences,
+                num_beam_groups=1,
+                early_stopping=True,
+                return_dict_in_generate=True,
+                output_scores=True,
+                output_hidden_states=True,
+            )
 
+            output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
+                v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
+                    v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
         # Should be a dictionary with keys ood scores,
         # each containing a numpy array of shape (batch_size, num_return_sequences))
 
@@ -168,7 +202,7 @@ def evaluate_dataloader(
                 num_return_sequences,
             ).tolist()
         else:
-            sequences_scores = [0.0]*len(batch)   # TODO: fix this
+            sequences_scores = [0.0] * len(batch)  # TODO: fix this
 
         records["likelihood"].extend(sequences_scores)
         # print(records)
