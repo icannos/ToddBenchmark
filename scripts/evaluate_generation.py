@@ -51,7 +51,7 @@ def parse_args():
     )
 
     parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--num_return_sequences", type=int, default=4)
+    parser.add_argument("--num_return_sequences", type=int, default=2)
 
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)

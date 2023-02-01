@@ -270,7 +270,7 @@ def load_openbookqa_dataset(dataset_name, dataset_config):
 
     def mk_target(x):
         idx_answer = x["choices"]["label"].index(x["answerKey"])
-        return x["choices"]["label"][idx_answer]
+        return x["choices"]["text"][idx_answer]
 
     all_possible_answers = {}
     for split in dataset:
@@ -324,7 +324,7 @@ def load_ai2arc(dataset_name, dataset_config):
     def mk_target(x):
         answer_key = x["answerKey"]
         idx_answer = x["choices"]["label"].index(answer_key)
-        return x["choices"]["label"][idx_answer]
+        return x["choices"]["text"][idx_answer]
 
     all_possible_answers = {}
     for split in dataset:
@@ -489,7 +489,7 @@ def load_quartz(dataset_name, dataset_config):
 
     def mk_target(x):
         idx_answer = x["choices"]["label"].index(x["answerKey"])
-        return x["choices"]["label"][idx_answer]
+        return x["choices"]["text"][idx_answer]
 
     all_possible_answers = {}
     for split in dataset:

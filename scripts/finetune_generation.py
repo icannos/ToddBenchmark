@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
-    parser.add_argument("--output_dir", type=str, default="output")
+    parser.add_argument("--output_dir", type=str, default="output_models")
     return parser.parse_args()
 
 
