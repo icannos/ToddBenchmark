@@ -28,10 +28,11 @@ detectors:
 experiment_args:
   (): scripts.configs.wrapper.ExperimentArgs
   output_dir: "output/"
-  batch_size: 8
   num_workers: 4
   num_return_sequences: 4
   seed: 42
   append: false
   device: "cuda"
+  batch_size: 64
   # validation_size: 20
+  # test_size: 20

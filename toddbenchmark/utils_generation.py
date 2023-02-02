@@ -82,9 +82,9 @@ def prepare_detectors(
                 output_scores=True,
                 output_hidden_states=True,
             )
-            output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
-                v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
-                    v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
+            # output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
+            #     v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
+            #         v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
 
             for detector in detectors:
                 detector.accumulate(output)
@@ -167,9 +167,9 @@ def evaluate_dataloader(
                 output_hidden_states=True,
             )
 
-            output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
-                v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
-                    v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
+            # output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
+            #     v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
+            #         v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
         # Should be a dictionary with keys ood scores,
         # each containing a numpy array of shape (batch_size, num_return_sequences))
 

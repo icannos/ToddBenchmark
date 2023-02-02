@@ -68,7 +68,7 @@ if __name__ == "__main__":
     def metric_eval(prediction, reference):
         bleu = bleuscorer.sentence_score(hypothesis=prediction, references=[reference])
         bert = bertscorer.score([prediction], [reference])
-        return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
+        return {"bleu": bleu.score, "bert": bert[2][0].item()}
 
     # Load the reference set
     _, validation_loader, test_loader = load_requested_dataset(
@@ -88,7 +88,7 @@ if __name__ == "__main__":
         mode="input",  # mode="token",  # input, output, token
         num_return_sequences=experiment_args.num_return_sequences,
         num_beam=experiment_args.num_return_sequences,
-        reference_vocab_distribution=idf,
+        reference_vocab_distribution=idf.to(model.device),
     ) for t in [0.5, 1, 1.5, 2, 5] for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
 
     detectors.extend([
@@ -175,7 +175,7 @@ if __name__ == "__main__":
             metric_eval=metric_eval,
         )
 
-        reference_file_name = args.out_config.split("/")[-1].split(".")[0]
+        reference_file_name = out_config.split("/")[-1].split(".")[0]
         dump_path = Path(os.path.join(experiment_args.output_dir, "test_scores", f"{reference_file_name}.json"))
         dump_path.parent.mkdir(parents=True, exist_ok=True)
         dump_json(records, dump_path, append=experiment_args.append)
