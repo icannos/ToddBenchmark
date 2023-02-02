@@ -13,13 +13,13 @@ bleu_scorer:
 model:
   (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
   pretrained_model_name_or_path: "facebook/m2m100_418M" # "t5-base"
-  src_lang: "en"
-  tgt_lang: "fr"
   # device_map: auto
 
 tokenizer:
   (): scripts.configs.wrapper.AutoTokenizerWrapper
   pretrained_model_name_or_path: "facebook/m2m100_418M" # "t5-base"
+  src_lang: "en"
+  tgt_lang: "fr"
 
 detectors:
   - (): Todd.MahalanobisScorer
