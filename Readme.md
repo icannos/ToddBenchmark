@@ -7,6 +7,8 @@ of datasets and models on which to run Todd detectors.
 
 ## Cite this work
 
+[![DOI](https://zenodo.org/badge/560093708.svg)](https://zenodo.org/badge/latestdoi/560093708)
+
 If you use this work, please cite us using:
 
 ```
