@@ -40,7 +40,7 @@ def parse_args():
         choices=config_choices,
     )
 
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=128)
 
     parser.add_argument("--seed", type=int, default=42)
 
@@ -64,7 +64,7 @@ def parse_args():
     parser.add_argument("--output_dir", type=str, default="output")
     return parser.parse_args()
 
-
+# Instantiate the detectors
 detectors: List[ScorerType] = [MahalanobisScorer(layers=[-1])]
 
 

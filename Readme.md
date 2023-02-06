@@ -30,6 +30,10 @@ cd ToddBenchmark
 pip install -e .
 ```
 
+## Examples:
+
+Usecases are provided in the `examples` folder.
+
 ## Available datasets
 
 Please see `toddbenchmark/classification_datasets_config.py` and
