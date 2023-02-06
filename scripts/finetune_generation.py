@@ -1,12 +1,18 @@
+import nltk
+
+print("TEST")
+
 import argparse
+from pathlib import Path
 
 import numpy as np
 import torch
 from evaluate import load as load_metric
 from transformers import (
-    Trainer,
-    TrainingArguments,
+    Seq2SeqTrainer,
+    Seq2SeqTrainingArguments,
     DataCollatorForSeq2Seq,
+    IntervalStrategy
 )
 
 from toddbenchmark.generation_datasets import prep_dataset, prep_model
@@ -38,28 +44,61 @@ if __name__ == "__main__":
     args = parse_args()
 
     metrics = {
-        "Accuracy": load_metric("accuracy"),
         "BLEU": load_metric("sacrebleu"),
         "rouge": load_metric("rouge"),
     }
 
-    def compute_metrics(eval_pred):
-        logits, labels = eval_pred
-        predictions = np.argmax(logits, axis=-1)
 
-        return {
-            k: m.compute(predictions=predictions, references=labels)
-            for k, m in metrics.items()
-        }
+    def postprocess_text(preds, labels):
+        preds = [pred.strip() for pred in preds]
+        labels = [label.strip() for label in labels]
 
-    training_args = TrainingArguments(
+        # rougeLSum expects newline after each sentence
+        preds = ["\n".join(nltk.sent_tokenize(pred)) for pred in preds]
+        labels = ["\n".join(nltk.sent_tokenize(label)) for label in labels]
+
+        return preds, labels
+
+    def compute_metrics(eval_preds):
+        preds, labels = eval_preds
+        if isinstance(preds, tuple):
+            preds = preds[0]
+        decoded_preds = tokenizer.batch_decode(preds, skip_special_tokens=True)
+        decoded_labels = tokenizer.batch_decode(labels, skip_special_tokens=True)
+
+        # Some simple post-processing
+        decoded_preds, decoded_labels = postprocess_text(decoded_preds, decoded_labels)
+
+        result = {}
+
+        for metric_name, metric in metrics.items():
+            result = result | {f"{metric_name}: {k}": v for k, v in metric.compute(predictions=decoded_preds, references=decoded_labels).items()}
+        return result
+
+    # create output dir if not exists
+    print("HEY!!!")
+    Path(args.output_dir).mkdir(exist_ok=True, parents=True)
+    logging_dir = Path('tensorboard_training') / Path(args.output_dir)
+    logging_dir.mkdir(parents=True, exist_ok=True)
+
+    training_args = Seq2SeqTrainingArguments(
+        predict_with_generate=True,
         output_dir=args.output_dir,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         num_train_epochs=args.epoch,
-        save_steps=1000,
-        logging_strategy="steps",
-        logging_steps=1000,
+        save_steps=50,
+        logging_strategy=IntervalStrategy.STEPS,
+        evaluation_strategy=IntervalStrategy.STEPS,
+        logging_steps=5,
+        eval_steps=5,
+        logging_dir=str(logging_dir),
+        save_strategy=IntervalStrategy.STEPS,
+        save_total_limit=1,
+        do_eval=True,
+        eval_accumulation_steps=2,
+        eval_delay=0.0,
+
     )
 
     model, tokenizer = prep_model(args.model_name)
@@ -68,9 +107,9 @@ if __name__ == "__main__":
         config["dataset_name"],
         config["dataset_config"],
         tokenizer,
-        train_max_size=200,
-        validation_max_size=200,
-        test_max_size=200,
+        train_max_size=100,
+        validation_max_size=50,
+        test_max_size=100,
     )
 
     def tokenize_function(examples):
@@ -96,7 +135,7 @@ if __name__ == "__main__":
         label_pad_token_id=tokenizer.pad_token_id,
     )
 
-    trainer = Trainer(
+    trainer = Seq2SeqTrainer(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
@@ -106,4 +145,5 @@ if __name__ == "__main__":
         data_collator=data_collator,
     )
 
+    trainer.evaluate()
     trainer.train()

@@ -6,43 +6,42 @@ from typing import List
 import torch
 from tqdm import tqdm
 
-from Todd import ScorerType, MahalanobisFilter
-from toddbenchmark.generation_datasets import prep_model
-from toddbenchmark.generation_datasets_configs import (
+from Todd import ScorerType, MahalanobisScorer
+from toddbenchmark.classification_datasets import prep_model
+from toddbenchmark.classification_datasets_configs import (
     DATASETS_CONFIGS,
     load_requested_dataset,
 )
-from toddbenchmark.utils_generation import (
+from toddbenchmark.utils_classification import (
     prepare_detectors,
     evaluate_dataloader,
-    mk_file_name,
 )
+
+from toddbenchmark.utils import mk_file_name
 
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
-    parser.add_argument("--model_name", type=str, default="Helsinki-NLP/opus-mt-en-de")
+    parser.add_argument("--model_name", type=str, default="distilbert-base-uncased")
 
     config_choices: List[str] = list(DATASETS_CONFIGS.keys())
 
     parser.add_argument(
         "--in_config",
         type=str,
-        default="tatoeba_mt_deu_eng",
+        default="sst2",
         choices=config_choices,
     )
     parser.add_argument(
         "--out_configs",
         type=str,
         nargs="+",
-        default=["wmt16_de_en"],
+        default=["imdb"],
         choices=config_choices,
     )
 
     parser.add_argument("--batch_size", type=int, default=4)
-    parser.add_argument("--num_return_sequences", type=int, default=1)
 
-    parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)
 
     # Dataset max sizes
@@ -66,7 +65,7 @@ def parse_args():
     return parser.parse_args()
 
 
-detectors: List[ScorerType] = [MahalanobisFilter(threshold=0.5, layers=[-1])]
+detectors: List[ScorerType] = [MahalanobisScorer(layers=[-1])]
 
 
 if __name__ == "__main__":
@@ -92,9 +91,6 @@ if __name__ == "__main__":
         validation_loader,
         tokenizer,
         detectors,
-        num_beams=4,
-        num_return_sequences=4,
-        max_length=150,
     )
 
     inval_ds_scores_path = Path(args.output_dir) / (
@@ -115,9 +111,6 @@ if __name__ == "__main__":
         test_loader,
         tokenizer,
         detectors,
-        num_beams=4,
-        num_return_sequences=4,
-        max_length=150,
     )
 
     in_ds_scores_path = Path(args.output_dir) / (
@@ -144,9 +137,6 @@ if __name__ == "__main__":
             test_loader,
             tokenizer,
             detectors,
-            num_beams=2,
-            num_return_sequences=2,
-            max_length=150,
         )
 
         out_ds_scores_path = Path(args.output_dir) / (

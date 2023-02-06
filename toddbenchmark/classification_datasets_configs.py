@@ -1,6 +1,7 @@
 from torch.utils.data import DataLoader
 
 from .classification_datasets import prep_dataset
+import torch
 
 BASE_CONFIG = {"batch_size": 16}
 
@@ -63,6 +64,21 @@ def load_requested_dataset(
     def tokenize_function(examples):
         return tokenizer(text=examples["text"], truncation=True)
 
+    pad_token = tokenizer.pad_token_id
+
+    def collate_function(batch):
+        text, labels = zip(*batch)
+        inputs = tokenizer(
+            text,
+            padding=True,
+            truncation=True,
+            max_length=128,
+            return_tensors="pt",
+        )
+        inputs["labels"] = torch.tensor(labels)
+
+        return inputs
+
     datasets = {}
 
     if config_name not in DATASETS_CONFIGS:
@@ -79,24 +95,6 @@ def load_requested_dataset(
         train_max_size=train_size,
         validation_max_size=validation_size,
         test_max_size=test_size,
-    )
-
-    test_dataset = test_dataset.map(
-        tokenize_function,
-        batched=True,
-        num_proc=4,
-    )
-
-    validation_dataset = validation_dataset.map(
-        tokenize_function,
-        batched=True,
-        num_proc=4,
-    )
-
-    test_dataset = test_dataset.map(
-        tokenize_function,
-        batched=True,
-        num_proc=4,
     )
 
     train_loader = DataLoader(

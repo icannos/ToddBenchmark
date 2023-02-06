@@ -11,6 +11,7 @@ from Todd import (
     MahalanobisScorer,
     SequenceRenyiNegScorer,
     BeamRenyiInformationProjection,
+    CosineProjectionScorer,
 )
 from toddbenchmark.generation_datasets import prep_model
 from toddbenchmark.generation_datasets_configs import (
@@ -27,7 +28,6 @@ from sacrebleu import BLEU
 from bert_score import BERTScorer
 
 from toddbenchmark.utils import dump_json
-
 
 
 def parse_args():
@@ -92,33 +92,35 @@ if __name__ == "__main__":
     bleuscorer = BLEU(effective_order=True)
     bertscorer = BERTScorer(lang="en", rescale_with_baseline=True)
 
+
     def metric_eval(prediction, reference):
         bleu = bleuscorer.sentence_score(hypothesis=prediction, references=[reference])
         bert = bertscorer.score([prediction], [reference])
         return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
+
 
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
 
     detectors: List[ScorerType] = [
         SequenceRenyiNegScorer(
-            alpha=1.5,
+            alpha=a,
+            temperature=t,
             mode="token",  # input, output, token
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
         )
         for t in [0.5, 1, 1.5, 2]
-        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
-    ]
-
-
-        # BeamRenyiInformationProjection(
-        #     threshold=0.5,
-        #     alpha=1.5,
-        #     num_return_sequences=args.num_return_sequences,
-        #     num_beams=args.num_return_sequences,
-        #     mode="output",
-        # )
+        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]] + [
+        SequenceRenyiNegScorer(
+            alpha=a,
+            temperature=t,
+            mode="input",  # input, output, token
+            num_return_sequences=args.num_return_sequences,
+            num_beam=args.num_return_sequences,
+        )
+        for t in [0.5, 1, 1.5, 2]
+        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]]
 
     # Load the reference set
 
@@ -150,8 +152,8 @@ if __name__ == "__main__":
     )
 
     inval_ds_scores_path = Path(args.output_dir) / (
-        "validation_scores/"
-        + mk_file_name(args.model_name, args.in_config, args.in_config)
+            "validation_scores/"
+            + mk_file_name(args.model_name, args.in_config, args.in_config)
     )
     inval_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -174,7 +176,7 @@ if __name__ == "__main__":
     )
 
     in_ds_scores_path = Path(args.output_dir) / (
-        "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
+            "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
     )
     in_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -203,7 +205,7 @@ if __name__ == "__main__":
         )
 
         out_ds_scores_path = Path(args.output_dir) / (
-            "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
+                "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
         )
         out_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 

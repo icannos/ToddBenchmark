@@ -1,15 +1,17 @@
 import argparse
+from time import time
 
 import evaluate
 import numpy as np
 import torch
 from toddbenchmark.classification_datasets import prep_dataset, prep_model
 from toddbenchmark.classification_datasets_configs import DATASETS_CONFIGS
+from toddbenchmark.utils import sanitize_model_name
+
 from transformers import (
     Trainer,
     TrainingArguments,
 )
-
 
 def parse_args():
     parser = argparse.ArgumentParser(
@@ -24,15 +26,14 @@ def parse_args():
         choices=list(DATASETS_CONFIGS.keys()),
     )
 
-    parser.add_argument("--batch_size", type=int, default=2)
+    parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--epoch", type=int, default=100)
-    parser.add_argument("--max_length", type=int, default=50)
     parser.add_argument("--seed", type=int, default=42)
 
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
-    parser.add_argument("--output_dir", type=str, default="output")
+    parser.add_argument("--output_dir", type=str, default="output_finetuning")
     return parser.parse_args()
 
 
@@ -48,14 +49,20 @@ def compute_metrics(eval_pred):
 if __name__ == "__main__":
     args = parse_args()
 
+    output_dir = args.output_dir + "/" + f"{sanitize_model_name(args.model_name)}-{args.dataset_config}"
+
     training_args = TrainingArguments(
-        output_dir=args.output_dir,
+        output_dir=output_dir,
         per_device_train_batch_size=args.batch_size,
         per_device_eval_batch_size=args.batch_size,
         num_train_epochs=args.epoch,
         save_steps=1000,
+        eval_steps=200,
         logging_strategy="steps",
-        logging_steps=1000,
+        evaluation_strategy="steps",
+        logging_steps=200,
+        save_total_limit=5,
+        logging_dir= output_dir + "/logs-{}-{}".format(args.dataset_config, time()),
         seed=args.seed,
     )
 

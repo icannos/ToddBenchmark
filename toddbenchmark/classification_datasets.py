@@ -585,7 +585,7 @@ def load_go_emotions():
 
 
 def load_sst2():
-    datasets = load_dataset("glue", "sst2")
+    datasets = load_dataset("glue", "sst2", ignore_verifications=True)
 
     train = [{"text": x["sentence"], "label": x["label"]} for x in datasets["train"]]
     validation = [
