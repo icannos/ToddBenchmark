@@ -1,0 +1,46 @@
+t5-base-model:
+  (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
+  pretrained_model_name_or_path:  "t5-base"
+  # device_map: auto
+
+t5-base-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "t5-base"
+
+flan-t5-base-model:
+  (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
+  pretrained_model_name_or_path:  "google/flan-t5-base"
+  # device_map: auto
+
+flan-t5-base-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "google/flan-t5-base"
+
+flan-t5-xl-model:
+  (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
+  pretrained_model_name_or_path:  "google/flan-t5-xl"
+  # device_map: auto
+
+flan-t5-xl-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "google/flan-t5-xl"
+
+m2m100-model:
+  (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
+  pretrained_model_name_or_path:  "facebook/m2m100_418M"
+  # device_map: auto
+
+m2m100-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "facebook/m2m100_418M"
+  src_lang: "en"
+  tgt_lang: "fr"
+
+bart-large-cnn-model:
+  (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
+  pretrained_model_name_or_path: "facebook/bart-large-cnn"
+  # device_map: auto
+
+bart-large-cnn-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "facebook/bart-large-cnn"

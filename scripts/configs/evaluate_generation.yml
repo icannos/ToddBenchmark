@@ -9,17 +9,8 @@ bleu_scorer:
   trg_lang: ""
   effective_order: True
 
-
-model:
-  (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
-  pretrained_model_name_or_path: "facebook/m2m100_418M" # "t5-base"
-  # device_map: auto
-
-tokenizer:
-  (): scripts.configs.wrapper.AutoTokenizerWrapper
-  pretrained_model_name_or_path: "facebook/m2m100_418M" # "t5-base"
-  src_lang: "en"
-  tgt_lang: "fr"
+model: !import:flan-t5-base-model model_configs.yml
+tokenizer: !import:flan-t5-base-tokenizer model_configs.yml
 
 detectors:
   - (): Todd.MahalanobisScorer
