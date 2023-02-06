@@ -5,6 +5,21 @@ This is the sister repository of [https://github.com/icannos/Todd/](https://gith
 This repository contains the scripts and dataset loading for the Todd benchmark. It provides easy access to a range
 of datasets and models on which to run Todd detectors.
 
+## Cite this work
+
+If you use this work, please cite us using:
+
+```
+@software{Darrin_Todd_A_tool_2023,
+author = {Darrin, Maxime and Faysse, Manuel and Staerman, Guillaume and Picot, Marine and Dadalto Camara Gomez, Eduardo and Colombo, Pierre},
+month = {2},
+title = {{Todd: A tool for text OOD detection.}},
+url = {https://github.com/icannos/Todd},
+version = {0.0.1},
+year = {2023}
+}
+```
+
 ## Installation
 
 To install the package, run the following command:
