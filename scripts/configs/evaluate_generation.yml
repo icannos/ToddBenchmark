@@ -9,8 +9,8 @@ bleu_scorer:
   trg_lang: ""
   effective_order: True
 
-model: !import:flan-t5-base-model model_configs.yml
-tokenizer: !import:flan-t5-base-tokenizer model_configs.yml
+model: !import:t5-base-model model_configs.yml
+tokenizer: !import:t5-base-tokenizer model_configs.yml
 
 detectors:
   - (): Todd.MahalanobisScorer
