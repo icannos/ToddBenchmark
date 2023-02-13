@@ -9,6 +9,7 @@ from transformers.generation import BeamSearchEncoderDecoderOutput
 from torch.utils.data import DataLoader
 
 from Todd import ScorerType
+from Todd.query_based_scorers import QueryBasedScorer
 
 
 def prepare_idf(
@@ -115,9 +116,9 @@ def evaluate_batch(output, detectors: List[ScorerType]) -> Dict[str, torch.Tenso
 
     scores = {}
     for detector in detectors:
-        s = detector.compute_scores_benchmark(output)
-        scores |= {f"{detector}+{k}": v for k, v in flatten_dict(s).items()}
-
+        if not isinstance(detector, QueryBasedScorer):
+            s = detector.compute_scores_benchmark(output)
+            scores |= {f"{detector}+{k}": v for k, v in flatten_dict(s).items()}
     return scores
 
 
@@ -147,11 +148,14 @@ def evaluate_dataloader(
         inputs = tokenizer(
             batch["source"], padding=True, truncation=True, return_tensors="pt"
         ).to(model.device)
-        labels = tokenizer(
-            batch["target"], padding=True, truncation=True, return_tensors="pt"
-        ).to(model.device)
+        # labels = tokenizer(
+        #     batch["target"], padding=True, truncation=True, return_tensors="pt"
+        # ).to(model.device)
 
         # inputs = {k: v.to(model.device) for k, v in inputs.items()}
+        for detector in detectors:
+            if isinstance(detector, QueryBasedScorer):
+                records[f"{detector}+score"].extend(detector.score_sentences(batch["source"], model, tokenizer))
 
         with torch.no_grad():
             output = model.generate(
@@ -187,7 +191,7 @@ def evaluate_dataloader(
             output.sequences.shape[0] // num_return_sequences,
             num_return_sequences,
             -1,
-        )
+        ).cpu()
 
         global_perfs_scores = defaultdict(list)
         for sample_id, seqs in enumerate(generated_sequences):

@@ -13,23 +13,33 @@ model: !import:t5-base-model model_configs.yml
 tokenizer: !import:t5-base-tokenizer model_configs.yml
 
 detectors:
-  - (): Todd.MahalanobisScorer
-    layers: [-1]
-    use_first_token_only: true
-    chosen_state: "encoder_hidden_states"
-  - (): Todd.MahalanobisScorer
-    layers: [ -1 ]
-    use_first_token_only: true
-    chosen_state: "decoder_hidden_states"
-  - (): Todd.MahalanobisScorer
-    layers: [-1]
-    use_first_token_only: false
-    chosen_state: "encoder_hidden_states"
-  - (): Todd.MahalanobisScorer
-    layers: [ -1 ]
-    use_first_token_only: false
-    chosen_state: "decoder_hidden_states"
+  - (): Todd.T5QueryScorer
+    prefix: "translate from English to French: "
+    batch_size: 4
+    loss_on_first_word_only: true
+  - (): Todd.T5QueryScorer
+    prefix: "translate from English to French: "
+    batch_size: 4
+    loss_on_first_word_only: false
 
+  - (): Todd.MahalanobisScorer
+    layers: [-1]
+    use_first_token_only: true
+    chosen_state: "encoder_hidden_states"
+  - (): Todd.MahalanobisScorer
+    layers: [ -1 ]
+    use_first_token_only: true
+    chosen_state: "decoder_hidden_states"
+#
+##  - (): Todd.MahalanobisScorer
+##    layers: [-1]
+##    use_first_token_only: false
+##    chosen_state: "encoder_hidden_states"
+##  - (): Todd.MahalanobisScorer
+##    layers: [ -1 ]
+##    use_first_token_only: false
+##    chosen_state: "decoder_hidden_states"
+#
   - (): Todd.CosineProjectionScorer
     layers: [-1]
     use_first_token_only: true
@@ -47,6 +57,6 @@ experiment_args:
   seed: 42
   append: false
   device: "cuda"
-  batch_size: 64
-  # validation_size: 20
-  # test_size: 20
+  batch_size: 32
+  # validation_size: 64
+  # test_size: 200
