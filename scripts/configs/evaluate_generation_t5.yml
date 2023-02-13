@@ -17,10 +17,12 @@ detectors:
     prefix: "translate from English to French: "
     batch_size: 4
     loss_on_first_word_only: true
-  - (): Todd.T5QueryScorer
-    prefix: "translate from English to French: "
-    batch_size: 4
+  - (): Todd.BartQueryScorer
+    batch_size: 8
     loss_on_first_word_only: false
+    prefix: "translate from English to French: "
+    model: !import:bart-base-model model_configs.yml
+    tokenizer: !import:bart-base-tokenizer model_configs.yml
 
   - (): Todd.MahalanobisScorer
     layers: [-1]
