@@ -3,7 +3,6 @@ import os
 from pathlib import Path
 from typing import List
 
-import torch
 from tqdm import tqdm
 import configue
 
@@ -51,6 +50,8 @@ def parse_args():
 
 
 if __name__ == "__main__":
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
     args = parse_args()
     config: dict = configue.load(args.experiment_config_path)
 
