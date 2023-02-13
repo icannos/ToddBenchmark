@@ -9,43 +9,47 @@ bleu_scorer:
   trg_lang: ""
   effective_order: True
 
-model: !import:bart-base-model model_configs.yml
-tokenizer: !import:bart-base-tokenizer model_configs.yml
+model: !import:bart-large-cnn-model model_configs.yml
+tokenizer: !import:bart-large-cnn-tokenizer model_configs.yml
 
 detectors:
   - (): Todd.BartQueryScorer
-    batch_size: 2
+    batch_size: 8
     loss_on_first_word_only: true
+    model: !import:bart-base-model model_configs.yml
+    tokenizer: !import:bart-base-tokenizer model_configs.yml
   - (): Todd.BartQueryScorer
-    batch_size: 2
+    batch_size: 8
     loss_on_first_word_only: false
+    model: !import:bart-base-model model_configs.yml
+    tokenizer: !import:bart-base-tokenizer model_configs.yml
 
-#  - (): Todd.MahalanobisScorer
-#    layers: [-1]
-#    use_first_token_only: true
-#    chosen_state: "encoder_hidden_states"
-#  - (): Todd.MahalanobisScorer
-#    layers: [ -1 ]
-#    use_first_token_only: true
-#    chosen_state: "decoder_hidden_states"
-##
-###  - (): Todd.MahalanobisScorer
-###    layers: [-1]
-###    use_first_token_only: false
-###    chosen_state: "encoder_hidden_states"
-###  - (): Todd.MahalanobisScorer
-###    layers: [ -1 ]
-###    use_first_token_only: false
-###    chosen_state: "decoder_hidden_states"
-##
-#  - (): Todd.CosineProjectionScorer
-#    layers: [-1]
-#    use_first_token_only: true
-#    chosen_state: "encoder_hidden_states"
-#  - (): Todd.CosineProjectionScorer
-#    layers: [ -1 ]
-#    use_first_token_only: true
-#    chosen_state: "decoder_hidden_states"
+  - (): Todd.MahalanobisScorer
+    layers: [-1]
+    use_first_token_only: true
+    chosen_state: "encoder_hidden_states"
+  - (): Todd.MahalanobisScorer
+    layers: [ -1 ]
+    use_first_token_only: true
+    chosen_state: "decoder_hidden_states"
+#
+##  - (): Todd.MahalanobisScorer
+##    layers: [-1]
+##    use_first_token_only: false
+##    chosen_state: "encoder_hidden_states"
+##  - (): Todd.MahalanobisScorer
+##    layers: [ -1 ]
+##    use_first_token_only: false
+##    chosen_state: "decoder_hidden_states"
+#
+  - (): Todd.CosineProjectionScorer
+    layers: [-1]
+    use_first_token_only: true
+    chosen_state: "encoder_hidden_states"
+  - (): Todd.CosineProjectionScorer
+    layers: [ -1 ]
+    use_first_token_only: true
+    chosen_state: "decoder_hidden_states"
 
 experiment_args:
   (): scripts.configs.wrapper.ExperimentArgs
@@ -55,6 +59,6 @@ experiment_args:
   seed: 42
   append: false
   device: "cuda"
-  batch_size: 1
-  validation_size: 4
-  test_size: 100
+  batch_size: 8
+  # validation_size: 4
+  # test_size: 100
