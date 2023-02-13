@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from .generation_datasets import prep_dataset
 
 DATASETS_CONFIGS: Dict[str, Dict] = {}
+TRANSLATION_DATASETS : Dict[str, Dict] = {}
 
 BASE_CONFIG = {
     "batch_size": 8,
@@ -13,34 +14,129 @@ BASE_CONFIG = {
 # Datasets configs with english (en) as target language:
 
 # wmt16
-DATASETS_CONFIGS["wmt16_de_en"] = BASE_CONFIG | {
+TRANSLATION_DATASETS["wmt16_de_en"] = BASE_CONFIG | {
     "dataset_name": "wmt16",
     "dataset_config": "de-en",
 }
 
 # news_commentary
-DATASETS_CONFIGS["news_commentary_en_de"] = BASE_CONFIG | {
+TRANSLATION_DATASETS["news_commentary_en_de"] = BASE_CONFIG | {
     "dataset_name": "news_commentary",
     "dataset_config": "de-en",
 }
 
 # Helsinki-NLP TaToeba, german english
-DATASETS_CONFIGS["tatoeba_mt_deu_eng"] = BASE_CONFIG | {
+TRANSLATION_DATASETS["tatoeba_mt_deu_eng"] = BASE_CONFIG | {
     "dataset_name": "Helsinki-NLP/tatoeba_mt",
     "dataset_config": "deu-eng",
 }
 
 # Helsinki-NLP TaToeba, Spanish English
-DATASETS_CONFIGS["tatoeba_mt_spa_eng"] = BASE_CONFIG | {
+TRANSLATION_DATASETS["tatoeba_mt_spa_eng"] = BASE_CONFIG | {
     "dataset_name": "Helsinki-NLP/tatoeba_mt",
     "dataset_config": "spa-eng",
+    "model_config": "es-en"
 }
 
 # Helsinki-NLP TaToeba, Catalan English
-DATASETS_CONFIGS["tatoeba_mt_cat_eng"] = BASE_CONFIG | {
+TRANSLATION_DATASETS["tatoeba_mt_cat_eng"] = BASE_CONFIG | {
     "dataset_name": "Helsinki-NLP/tatoeba_mt",
     "dataset_config": "cat-eng",
 }
+
+TRANSLATION_DATASETS["tatoeba_mt_fra_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "fra-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_afr_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "afr-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_afr_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "afr-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_ita_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "ita-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_ita_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "ita-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_est_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "est-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_epo_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "epo-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_heb_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "heb-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_grc_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "grc-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_eus_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "eus-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_rus_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "rus-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_pol_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "pol-eng",
+    "model_config" : "pl-en"
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_nld_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "nld-eng",
+    "model_config" : "nl-en"
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_kor_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "kor-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_kor_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "kor-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_ukr_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "ukr-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_urd_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "urd-eng",
+}
+
+TRANSLATION_DATASETS["tatoeba_mt_urd_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "urd-eng",
+}
+
+DATASETS_CONFIGS = DATASETS_CONFIGS | TRANSLATION_DATASETS
 
 ###### Question Answering ######
 
@@ -127,6 +223,31 @@ DATASETS_CONFIGS["squad_v2_unanswerable"] = BASE_CONFIG | {
 #     "dataset_config": "unanswerable",
 # }
 
+# Summarization
+
+SUMMARIZATION_DATASETS = {}
+
+SUMMARIZATION_DATASETS["cnn_dailymail"] = BASE_CONFIG | {
+    "dataset_name": "cnn_dailymail",
+    "dataset_config": "3.0.0",
+}
+
+SUMMARIZATION_DATASETS["xsum"] = BASE_CONFIG | {
+    "dataset_name": "xsum",
+    "dataset_config": "",
+}
+
+SUMMARIZATION_DATASETS["billsum"] = BASE_CONFIG | {
+    "dataset_name": "billsum",
+    "dataset_config": "",
+}
+
+SUMMARIZATION_DATASETS["multi_news"] = BASE_CONFIG | {
+    "dataset_name": "multi_news",
+    "dataset_config": "",
+}
+
+DATASETS_CONFIGS = DATASETS_CONFIGS | SUMMARIZATION_DATASETS
 
 def load_requested_dataset(
     config_name: str,
@@ -185,3 +306,5 @@ if __name__ == "__main__":
         print(k)
         print(v)
         print("===========")
+
+

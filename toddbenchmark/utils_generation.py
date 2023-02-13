@@ -1,6 +1,6 @@
-from collections import defaultdict
+from collections import defaultdict, Counter
 from typing import List, Dict, Any, Optional, Callable
-
+from math import log
 import torch
 from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
@@ -75,7 +75,39 @@ def evaluate_batch(output, detectors: List[ScorerType]) -> Dict[str, torch.Tenso
         scores |= {f"{detector}+{k}": v for k, v in flatten_dict(s).items()}
 
     return scores
+def prepare_idf(
+        tokenizer,
+        model,
+        loader: DataLoader,
+):
 
+    input_refs = []
+    for batch in loader:
+        inputs = tokenizer(
+            batch["source"], padding=True, truncation=True, return_tensors="pt"
+        )
+        input_refs.extend(inputs.input_ids.tolist())
+
+    # Mock generation to get the vocab size
+    inputs = inputs.to(model.device)
+    vocab_size = model.generate(input_ids=inputs["input_ids"],
+                                attention_mask=inputs["attention_mask"],
+                                max_length=16,
+                                return_dict_in_generate=True,
+                                output_scores=True,
+                                ).scores[0].shape[1]
+    idf_count = Counter()
+    num_docs = len(input_refs)
+
+    idf_count.update(sum([list(set(i)) for i in input_refs], []))
+
+    idf_dict = defaultdict(lambda: log((num_docs + 1) / (1)))
+    idf_dict.update({idx: log((num_docs + 1) / (c + 1)) for (idx, c) in idf_count.items()})
+
+    idf = torch.ones(vocab_size, dtype=torch.float) * (log((num_docs + 1) / (0 + 1)))
+    for idx, c in idf_dict.items():
+        idf[idx] = c
+    return idf / idf.sum()
 
 def evaluate_dataloader(
     model,

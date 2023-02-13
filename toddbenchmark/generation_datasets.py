@@ -255,6 +255,43 @@ def load_amazon_reviews_multi(dataset_name, dataset_config):
 
     return {"train": train, "validation": val, "test": test}
 
+## Summarization datasets
+
+def load_xsum_dataset(dataset_name, dataset_config):
+    dataset = load_dataset(dataset_name, ignore_verifications=True)
+
+    train = [(d["document"], d["summary"]) for d in dataset["train"]]
+    val = [(d["document"], d["summary"]) for d in dataset["validation"]]
+    test = [(d["document"], d["summary"]) for d in dataset["test"]]
+
+    return {"train": train, "validation": val, "test": test}
+
+def load_cnndm_dataset(dataset_name, dataset_config):
+    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+
+    train = [(d["article"], d["highlights"]) for d in dataset["train"]]
+    val = [(d["article"], d["highlights"]) for d in dataset["validation"]]
+    test = [(d["article"], d["highlights"]) for d in dataset["test"]]
+
+    return {"train": train, "validation": val, "test": test}
+
+def load_billsum_dataset(dataset_name, dataset_config):
+    dataset = load_dataset(dataset_name, ignore_verifications=True)
+
+    train = [(d["text"], d["summary"]) for d in dataset["train"]]
+    train, val = train[:10000], train[10000:]
+    test = [(d["text"], d["summary"]) for d in dataset["test"]]
+
+    return {"train": train, "validation": val, "test": test}
+
+def load_multi_news_dataset(dataset_name, dataset_config):
+    dataset = load_dataset(dataset_name, ignore_verifications=True)
+
+    train = [(d["document"], d["summary"]) for d in dataset["train"]]
+    val = [(d["document"], d["summary"]) for d in dataset["validation"]]
+    test = [(d["document"], d["summary"]) for d in dataset["test"]]
+
+    return {"train": train, "validation": val, "test": test}
 
 ## Question Answering Datasets
 
@@ -757,6 +794,15 @@ def prep_dataset(
             dataset_config,
         )
 
+    # Summarization datasets
+    elif dataset_name == "cnn_dailymail":
+        dataset = load_cnndm_dataset(dataset_name, dataset_config)
+    elif dataset_name == "xsum":
+        dataset = load_xsum_dataset(dataset_name, dataset_config)
+    elif dataset_name == "billsum":
+        dataset = load_billsum_dataset(dataset_name, dataset_config)
+    elif dataset_name == "multi_news":
+        dataset = load_multi_news_dataset(dataset_name, dataset_config)
     else:
         raise ValueError("Dataset not supported")
 
@@ -782,6 +828,7 @@ def prep_model(model_name):
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     return model, tokenizer
+
 
 
 def prep_inputs(x, tokenizer, dataset_name):
