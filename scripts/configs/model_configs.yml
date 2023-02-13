@@ -44,3 +44,12 @@ bart-large-cnn-model:
 bart-large-cnn-tokenizer:
   (): scripts.configs.wrapper.AutoTokenizerWrapper
   pretrained_model_name_or_path: "facebook/bart-large-cnn"
+
+bart-base-model:
+  (): scripts.configs.wrapper.AutoModelForSeq2SeqLMWrapper
+  pretrained_model_name_or_path: "facebook/bart-base"
+  # device_map: auto
+
+bart-base-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "facebook/bart-base"

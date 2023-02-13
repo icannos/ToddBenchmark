@@ -1,0 +1,60 @@
+bert_scorer:
+  (): bert_score.BERTScorer
+  lang: "en"
+  rescale_with_baseline: True
+  model_type: "bert-base-uncased"
+
+bleu_scorer:
+  (): sacrebleu.BLEU
+  trg_lang: ""
+  effective_order: True
+
+model: !import:bart-base-model model_configs.yml
+tokenizer: !import:bart-base-tokenizer model_configs.yml
+
+detectors:
+  - (): Todd.BartQueryScorer
+    batch_size: 2
+    loss_on_first_word_only: true
+  - (): Todd.BartQueryScorer
+    batch_size: 2
+    loss_on_first_word_only: false
+
+#  - (): Todd.MahalanobisScorer
+#    layers: [-1]
+#    use_first_token_only: true
+#    chosen_state: "encoder_hidden_states"
+#  - (): Todd.MahalanobisScorer
+#    layers: [ -1 ]
+#    use_first_token_only: true
+#    chosen_state: "decoder_hidden_states"
+##
+###  - (): Todd.MahalanobisScorer
+###    layers: [-1]
+###    use_first_token_only: false
+###    chosen_state: "encoder_hidden_states"
+###  - (): Todd.MahalanobisScorer
+###    layers: [ -1 ]
+###    use_first_token_only: false
+###    chosen_state: "decoder_hidden_states"
+##
+#  - (): Todd.CosineProjectionScorer
+#    layers: [-1]
+#    use_first_token_only: true
+#    chosen_state: "encoder_hidden_states"
+#  - (): Todd.CosineProjectionScorer
+#    layers: [ -1 ]
+#    use_first_token_only: true
+#    chosen_state: "decoder_hidden_states"
+
+experiment_args:
+  (): scripts.configs.wrapper.ExperimentArgs
+  output_dir: "output/"
+  num_workers: 4
+  num_return_sequences: 4
+  seed: 42
+  append: false
+  device: "cuda"
+  batch_size: 1
+  validation_size: 4
+  test_size: 100
