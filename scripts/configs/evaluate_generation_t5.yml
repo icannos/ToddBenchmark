@@ -26,7 +26,7 @@ detectors:
   - (): Todd.BertQueryScorer
     prefix: "translate from English to French: "
     batch_size: 4
-    loss_on_first_word_only: true
+    loss_on_first_word_only: false
     model: !import:bert-base-model model_configs.yml
     tokenizer: !import:bert-base-tokenizer model_configs.yml
 
