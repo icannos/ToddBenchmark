@@ -18,14 +18,14 @@ detectors:
     batch_size: 4
     loss_on_first_word_only: true
   - (): Todd.BartQueryScorer
-    batch_size: 8
+    batch_size: 4
     loss_on_first_word_only: false
     prefix: "translate from English to French: "
     model: !import:bart-base-model model_configs.yml
     tokenizer: !import:bart-base-tokenizer model_configs.yml
   - (): Todd.BertQueryScorer
     prefix: "translate from English to French: "
-    batch_size: 8
+    batch_size: 4
     loss_on_first_word_only: true
     model: !import:bert-base-model model_configs.yml
     tokenizer: !import:bert-base-tokenizer model_configs.yml
@@ -65,6 +65,6 @@ experiment_args:
   seed: 42
   append: false
   device: "cuda"
-  batch_size: 32
+  batch_size: 8
   # validation_size: 64
   # test_size: 200
