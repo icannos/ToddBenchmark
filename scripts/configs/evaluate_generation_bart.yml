@@ -18,11 +18,11 @@ detectors:
     loss_on_first_word_only: true
     model: !import:bart-base-model model_configs.yml
     tokenizer: !import:bart-base-tokenizer model_configs.yml
-  - (): Todd.BartQueryScorer
+  - (): Todd.BertQueryScorer
     batch_size: 8
-    loss_on_first_word_only: false
-    model: !import:bart-base-model model_configs.yml
-    tokenizer: !import:bart-base-tokenizer model_configs.yml
+    loss_on_first_word_only: true
+    model: !import:bert-base-model model_configs.yml
+    tokenizer: !import:bert-base-tokenizer model_configs.yml
 
   - (): Todd.MahalanobisScorer
     layers: [-1]

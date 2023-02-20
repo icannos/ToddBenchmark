@@ -23,6 +23,12 @@ detectors:
     prefix: "translate from English to French: "
     model: !import:bart-base-model model_configs.yml
     tokenizer: !import:bart-base-tokenizer model_configs.yml
+  - (): Todd.BertQueryScorer
+    prefix: "translate from English to French: "
+    batch_size: 8
+    loss_on_first_word_only: true
+    model: !import:bert-base-model model_configs.yml
+    tokenizer: !import:bert-base-tokenizer model_configs.yml
 
   - (): Todd.MahalanobisScorer
     layers: [-1]
@@ -54,7 +60,7 @@ detectors:
 experiment_args:
   (): scripts.configs.wrapper.ExperimentArgs
   output_dir: "output/"
-  num_workers: 4
+  num_workers: 8
   num_return_sequences: 4
   seed: 42
   append: false
