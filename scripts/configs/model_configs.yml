@@ -62,3 +62,14 @@ bert-base-model:
 bert-base-tokenizer:
   (): scripts.configs.wrapper.AutoTokenizerWrapper
   pretrained_model_name_or_path: "bert-base-uncased"
+
+opt-iml-model:
+  (): scripts.configs.wrapper.AutoModelFoMaskedLMWrapper
+  pretrained_model_name_or_path: "facebook/opt-iml-max-1.3b"
+  torch_dtype: "float16"
+  # device_map: auto
+
+opt-iml-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "facebook/opt-iml-max-1.3b"
+  padding_side: "left"
