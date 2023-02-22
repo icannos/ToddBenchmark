@@ -1,6 +1,6 @@
 from typing import Optional
 import torch
-from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForMaskedLM
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForMaskedLM, AutoModelForCausalLM
 
 
 class AutoTokenizerWrapper:
@@ -13,9 +13,14 @@ class AutoModelForSeq2SeqLMWrapper:
         return AutoModelForSeq2SeqLM.from_pretrained(*args, **kwargs)
 
 
-class AutoModelFoMaskedLMWrapper:
+class AutoModelForMaskedLMWrapper:
     def __new__(cls, *args, **kwargs):
         return AutoModelForMaskedLM.from_pretrained(*args, **kwargs)
+
+
+class AutoModelForCausalLMWrapper:
+    def __new__(cls, *args, **kwargs):
+        return AutoModelForCausalLM.from_pretrained(*args, **kwargs)
 
 
 class ExperimentArgs:

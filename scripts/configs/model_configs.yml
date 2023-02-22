@@ -55,7 +55,7 @@ bart-base-tokenizer:
   pretrained_model_name_or_path: "facebook/bart-base"
 
 bert-base-model:
-  (): scripts.configs.wrapper.AutoModelFoMaskedLMWrapper
+  (): scripts.configs.wrapper.AutoModelForMaskedLMWrapper
   pretrained_model_name_or_path: "bert-base-uncased"
   # device_map: auto
 
@@ -64,7 +64,7 @@ bert-base-tokenizer:
   pretrained_model_name_or_path: "bert-base-uncased"
 
 opt-iml-model:
-  (): scripts.configs.wrapper.AutoModelFoMaskedLMWrapper
+  (): scripts.configs.wrapper.AutoModelForCausalLMWrapper
   pretrained_model_name_or_path: "facebook/opt-iml-max-1.3b"
   torch_dtype: "float16"
   # device_map: auto
