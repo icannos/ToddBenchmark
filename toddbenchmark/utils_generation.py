@@ -75,10 +75,12 @@ def evaluate_batch(output, detectors: List[ScorerType]) -> Dict[str, torch.Tenso
         scores |= {f"{detector}+{k}": v for k, v in flatten_dict(s).items()}
 
     return scores
+
+
 def prepare_idf(
-        tokenizer,
-        model,
-        loader: DataLoader,
+    tokenizer,
+    model,
+    loader: DataLoader,
 ):
 
     input_refs = []
@@ -90,24 +92,32 @@ def prepare_idf(
 
     # Mock generation to get the vocab size
     inputs = inputs.to(model.device)
-    vocab_size = model.generate(input_ids=inputs["input_ids"],
-                                attention_mask=inputs["attention_mask"],
-                                max_length=16,
-                                return_dict_in_generate=True,
-                                output_scores=True,
-                                ).scores[0].shape[1]
+    vocab_size = (
+        model.generate(
+            input_ids=inputs["input_ids"],
+            attention_mask=inputs["attention_mask"],
+            max_length=16,
+            return_dict_in_generate=True,
+            output_scores=True,
+        )
+        .scores[0]
+        .shape[1]
+    )
     idf_count = Counter()
     num_docs = len(input_refs)
 
     idf_count.update(sum([list(set(i)) for i in input_refs], []))
 
     idf_dict = defaultdict(lambda: log((num_docs + 1) / (1)))
-    idf_dict.update({idx: log((num_docs + 1) / (c + 1)) for (idx, c) in idf_count.items()})
+    idf_dict.update(
+        {idx: log((num_docs + 1) / (c + 1)) for (idx, c) in idf_count.items()}
+    )
 
     idf = torch.ones(vocab_size, dtype=torch.float) * (log((num_docs + 1) / (0 + 1)))
     for idx, c in idf_dict.items():
         idf[idx] = c
     return idf / idf.sum()
+
 
 def evaluate_dataloader(
     model,
@@ -118,6 +128,10 @@ def evaluate_dataloader(
     num_return_sequences: int,
     max_length: int,
     metric_eval: Optional[Callable] = None,
+    do_sample: bool = False,
+    top_k: Optional[int] = 0,
+    num_beam_groups: Optional[int] = None,
+    diversity_penalty: Optional[float] = None,
 ) -> Dict[str, List]:
 
     # Initialize the scores dictionary
@@ -146,11 +160,14 @@ def evaluate_dataloader(
             max_length=max_length,
             num_beams=num_beams,
             num_return_sequences=num_return_sequences,
-            num_beam_groups=num_beams,
             early_stopping=True,
             return_dict_in_generate=True,
             output_scores=True,
             output_hidden_states=True,
+            do_sample=do_sample,
+            top_k=top_k,
+            # num_beam_groups=num_beam_groups,
+            # diversity_penalty=diversity_penalty,
         )
 
         # Should be a dictionary with keys ood scores,

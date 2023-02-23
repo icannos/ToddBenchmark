@@ -11,8 +11,10 @@ from Todd import (
     MahalanobisScorer,
     SequenceRenyiNegScorer,
     BeamRenyiInformationProjection,
-    CosineProjectionScorer, SequenceRenyiNegDataFittedScorer,
+    CosineProjectionScorer,
+    SequenceRenyiNegDataFittedScorer,
 )
+
 from toddbenchmark.generation_datasets import prep_model
 from toddbenchmark.generation_datasets_configs import (
     DATASETS_CONFIGS,
@@ -21,7 +23,8 @@ from toddbenchmark.generation_datasets_configs import (
 from toddbenchmark.utils_generation import (
     prepare_detectors,
     evaluate_dataloader,
-    mk_file_name, prepare_idf,
+    mk_file_name,
+    prepare_idf,
 )
 import evaluate
 from sacrebleu import BLEU
@@ -99,7 +102,7 @@ if __name__ == "__main__":
 
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
-
+    model.to(args.device)
 
     # Load the reference set
 
@@ -122,22 +125,24 @@ if __name__ == "__main__":
             num_return_sequences=args.num_return_sequences,
             num_beam=args.num_return_sequences,
         )
-        for t in [0.1,  0.5, 1,  1.5, 2, 3, 4, 5]
+        for t in [0.1, 0.5, 1, 1.5, 2, 3, 4, 5]
         for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3, 4.0, 5.0]
     ]
 
-    detectors.extend([SequenceRenyiNegDataFittedScorer(
-        alpha=a,
-        temperature=t,
-        mode="input",  # mode="token",  # input, output, token
-        num_return_sequences=args.num_return_sequences,
-        num_beam=args.num_return_sequences,
-        reference_vocab_distribution=idf.to(model.device),
+    detectors.extend(
+        [
+            SequenceRenyiNegDataFittedScorer(
+                alpha=a,
+                temperature=t,
+                mode="input",  # mode="token",  # input, output, token
+                num_return_sequences=args.num_return_sequences,
+                num_beam=args.num_return_sequences,
+                reference_vocab_distribution=idf.to(model.device),
+            )
+            for t in [0.1, 0.5, 1, 1.5, 2, 3, 4, 5]
+            for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3, 4.0, 5.0]
+        ]
     )
-        for t in [0.1,  0.5, 1,  1.5, 2, 3, 4, 5]
-        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3, 4.0, 5.0]
-
-    ])
 
     detectors.extend([MahalanobisScorer(), CosineProjectionScorer()])
 

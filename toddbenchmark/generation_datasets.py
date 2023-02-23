@@ -43,7 +43,10 @@ def load_daily_dialog(tokenizer, dataset_name):
 
 
 def load_multi_woz_v22(tokenizer, dataset_name, dataset_config=None):
-    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+    dataset = load_dataset(
+        dataset_name,
+        dataset_config,
+    )
 
     def accumulate_dialogs(ds):
         _dataset = []
@@ -62,7 +65,9 @@ def load_multi_woz_v22(tokenizer, dataset_name, dataset_config=None):
 
 
 def load_movieqa():
-    dataset = load_dataset("wiki_movies", ignore_verifications=True)
+    dataset = load_dataset(
+        "wiki_movies",
+    )
 
     def process_split(ds):
         _dataset = []
@@ -83,7 +88,10 @@ def load_silicone_dataset(
     dataset_name,
     dataset_config,
 ):
-    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+    dataset = load_dataset(
+        dataset_name,
+        dataset_config,
+    )
 
     def accumulate_dialogs(ds):
         _dataset = [(e["Utterance"], "a") for e in ds]
@@ -209,12 +217,16 @@ def load_europarl_dataset(dataset_name, dataset_config):
     switch_lang = False
     try:
         dataset = load_dataset(
-            dataset_name, lang1=lang1, lang2=lang2, ignore_verifications=True
+            dataset_name,
+            lang1=lang1,
+            lang2=lang2,
         )
     except ValueError:
         try:
             dataset = load_dataset(
-                dataset_name, lang1=lang2, lang2=lang1, ignore_verifications=True
+                dataset_name,
+                lang1=lang2,
+                lang2=lang1,
             )
             switch_lang = True
         except ValueError:
@@ -247,7 +259,10 @@ def load_europarl_dataset(dataset_name, dataset_config):
 
 
 def load_amazon_reviews_multi(dataset_name, dataset_config):
-    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+    dataset = load_dataset(
+        dataset_name,
+        dataset_config,
+    )
 
     train = [(d["review_title"], d["review_title"]) for d in dataset["train"]]
     val = [(d["review_title"], d["review_title"]) for d in dataset["validation"]]
@@ -255,10 +270,14 @@ def load_amazon_reviews_multi(dataset_name, dataset_config):
 
     return {"train": train, "validation": val, "test": test}
 
+
 ## Summarization datasets
 
+
 def load_xsum_dataset(dataset_name, dataset_config):
-    dataset = load_dataset(dataset_name, ignore_verifications=True)
+    dataset = load_dataset(
+        dataset_name,
+    )
 
     train = [(d["document"], d["summary"]) for d in dataset["train"]]
     val = [(d["document"], d["summary"]) for d in dataset["validation"]]
@@ -266,8 +285,12 @@ def load_xsum_dataset(dataset_name, dataset_config):
 
     return {"train": train, "validation": val, "test": test}
 
+
 def load_cnndm_dataset(dataset_name, dataset_config):
-    dataset = load_dataset(dataset_name, dataset_config, ignore_verifications=True)
+    dataset = load_dataset(
+        dataset_name,
+        dataset_config,
+    )
 
     train = [(d["article"], d["highlights"]) for d in dataset["train"]]
     val = [(d["article"], d["highlights"]) for d in dataset["validation"]]
@@ -275,8 +298,11 @@ def load_cnndm_dataset(dataset_name, dataset_config):
 
     return {"train": train, "validation": val, "test": test}
 
+
 def load_billsum_dataset(dataset_name, dataset_config):
-    dataset = load_dataset(dataset_name, ignore_verifications=True)
+    dataset = load_dataset(
+        dataset_name,
+    )
 
     train = [(d["text"], d["summary"]) for d in dataset["train"]]
     train, val = train[:10000], train[10000:]
@@ -284,14 +310,18 @@ def load_billsum_dataset(dataset_name, dataset_config):
 
     return {"train": train, "validation": val, "test": test}
 
+
 def load_multi_news_dataset(dataset_name, dataset_config):
-    dataset = load_dataset(dataset_name, ignore_verifications=True)
+    dataset = load_dataset(
+        dataset_name,
+    )
 
     train = [(d["document"], d["summary"]) for d in dataset["train"]]
     val = [(d["document"], d["summary"]) for d in dataset["validation"]]
     test = [(d["document"], d["summary"]) for d in dataset["test"]]
 
     return {"train": train, "validation": val, "test": test}
+
 
 ## Question Answering Datasets
 
@@ -352,7 +382,10 @@ def load_openbookqa_dataset(dataset_name, dataset_config):
 def load_ai2arc(dataset_name, dataset_config):
     answerable, config = dataset_config.split("_")
 
-    dataset = load_dataset("ai2_arc", config, ignore_verifications=True)
+    dataset = load_dataset(
+        "ai2_arc",
+        config,
+    )
 
     def mk_input(x):
         txt = f"Context: ; Question: {x['question']} ; Choices: {' - '.join(x['choices']['text'])}"
@@ -470,7 +503,9 @@ def load_sciq(dataset_name, dataset_config):
 
 
 def load_tweetqa(dataset_name, dataset_config):
-    dataset = load_dataset("tweet_qa", ignore_verifications=True)
+    dataset = load_dataset(
+        "tweet_qa",
+    )
 
     def mk_input(x):
         txt = f"Context:{x['Tweet']} ; Question: {x['Question']}"
@@ -518,7 +553,9 @@ def load_tweetqa(dataset_name, dataset_config):
 
 
 def load_quartz(dataset_name, dataset_config):
-    dataset = load_dataset("quartz", ignore_verifications=True)
+    dataset = load_dataset(
+        "quartz",
+    )
 
     def mk_input(x):
         txt = f"Context:{x['para']} ; Question: {'- '.join(x['choices']['text'])}"
@@ -828,7 +865,6 @@ def prep_model(model_name):
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     return model, tokenizer
-
 
 
 def prep_inputs(x, tokenizer, dataset_name):

@@ -5,7 +5,7 @@ from torch.utils.data import DataLoader
 from .generation_datasets import prep_dataset
 
 DATASETS_CONFIGS: Dict[str, Dict] = {}
-TRANSLATION_DATASETS : Dict[str, Dict] = {}
+TRANSLATION_DATASETS: Dict[str, Dict] = {}
 
 BASE_CONFIG = {
     "batch_size": 8,
@@ -35,7 +35,7 @@ TRANSLATION_DATASETS["tatoeba_mt_deu_eng"] = BASE_CONFIG | {
 TRANSLATION_DATASETS["tatoeba_mt_spa_eng"] = BASE_CONFIG | {
     "dataset_name": "Helsinki-NLP/tatoeba_mt",
     "dataset_config": "spa-eng",
-    "model_config": "es-en"
+    "model_config": "es-en",
 }
 
 # Helsinki-NLP TaToeba, Catalan English
@@ -102,13 +102,13 @@ TRANSLATION_DATASETS["tatoeba_mt_rus_eng"] = BASE_CONFIG | {
 TRANSLATION_DATASETS["tatoeba_mt_pol_eng"] = BASE_CONFIG | {
     "dataset_name": "Helsinki-NLP/tatoeba_mt",
     "dataset_config": "pol-eng",
-    "model_config" : "pl-en"
+    "model_config": "pl-en",
 }
 
 TRANSLATION_DATASETS["tatoeba_mt_nld_eng"] = BASE_CONFIG | {
     "dataset_name": "Helsinki-NLP/tatoeba_mt",
     "dataset_config": "nld-eng",
-    "model_config" : "nl-en"
+    "model_config": "nl-en",
 }
 
 TRANSLATION_DATASETS["tatoeba_mt_kor_eng"] = BASE_CONFIG | {
@@ -173,7 +173,6 @@ DATASETS_CONFIGS["ai2arceasy_unanswerable"] = BASE_CONFIG | {
 
 DATASETS_CONFIGS["sciq_answerable"] = BASE_CONFIG | {
     "dataset_name": "sciq",
-
     "dataset_config": "answerable",
 }
 
@@ -249,6 +248,7 @@ SUMMARIZATION_DATASETS["multi_news"] = BASE_CONFIG | {
 
 DATASETS_CONFIGS = DATASETS_CONFIGS | SUMMARIZATION_DATASETS
 
+
 def load_requested_dataset(
     config_name: str,
     tokenizer,
@@ -256,6 +256,7 @@ def load_requested_dataset(
     train_size: int = 3000,
     validation_size: int = 3000,
     test_size: int = 3000,
+    update_input_fn=lambda sample: sample,
 ):
 
     datasets = {}
@@ -275,6 +276,14 @@ def load_requested_dataset(
         validation_max_size=validation_size,
         test_max_size=test_size,
     )
+
+    train_dataset = train_dataset.map(
+        update_input_fn,
+    )
+    validation_dataset = validation_dataset.map(
+        update_input_fn,
+    )
+    test_dataset = test_dataset.map(update_input_fn)
 
     train_loader = DataLoader(
         train_dataset,
@@ -306,5 +315,3 @@ if __name__ == "__main__":
         print(k)
         print(v)
         print("===========")
-
-

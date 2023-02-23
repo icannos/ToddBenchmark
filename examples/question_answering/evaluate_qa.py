@@ -1,9 +1,7 @@
 import argparse
 import json
-import os
 from pathlib import Path
 from typing import List
-from rouge_score import rouge_scorer
 
 import torch
 from tqdm import tqdm
@@ -14,7 +12,6 @@ from Todd import (
     SequenceRenyiNegScorer,
     BeamRenyiInformationProjection,
     CosineProjectionScorer,
-    SequenceRenyiNegDataFittedScorer,
 )
 from toddbenchmark.generation_datasets import prep_model
 from toddbenchmark.generation_datasets_configs import (
@@ -25,7 +22,6 @@ from toddbenchmark.utils_generation import (
     prepare_detectors,
     evaluate_dataloader,
     mk_file_name,
-    prepare_idf,
 )
 import evaluate
 from sacrebleu import BLEU
@@ -46,9 +42,16 @@ def parse_args():
         default="tatoeba_mt_deu_eng",
         choices=config_choices,
     )
+    parser.add_argument(
+        "--out_configs",
+        type=str,
+        nargs="+",
+        default=["wmt16_de_en"],
+        choices=config_choices,
+    )
 
     parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--num_return_sequences", type=int, default=4)
+    parser.add_argument("--num_return_sequences", type=int, default=2)
 
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)
@@ -70,7 +73,7 @@ def parse_args():
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
-    parser.add_argument("--output_dir", type=str, default="results/summarization")
+    parser.add_argument("--output_dir", type=str, default="output")
     parser.add_argument(
         "--append",
         action="store_true",
@@ -84,42 +87,41 @@ def parse_args():
 
 
 if __name__ == "__main__":
-    os.environ["TOKENIZERS_PARALLELISM"] = "false"
     args = parse_args()
 
     bleuscorer = BLEU(effective_order=True)
     bertscorer = BERTScorer(lang="en", rescale_with_baseline=True)
-    rougescorer = rouge_scorer.RougeScorer(
-        ["rouge1", "rouge2", "rougeL", "rougeLsum"],
-        split_summaries=".",
-        use_stemmer=True,
-    )
 
     def metric_eval(prediction, reference):
         bleu = bleuscorer.sentence_score(hypothesis=prediction, references=[reference])
         bert = bertscorer.score([prediction], [reference])
-        rouge = rougescorer.score(prediction, reference)
-
-        rouge_scores = {}
-
-        for rouge, score in rouge.items():
-            rouge_scores[f"{rouge}_precision"] = score.precision
-            rouge_scores[f"{rouge}_recall"] = score.recall
-            rouge_scores[f"{rouge}_fmeasure"] = score.fmeasure
-
-        return {
-            "bleu": bleu.score,
-            "bert": bert[2][0].cpu().detach().tolist(),
-            **rouge_scores,
-        }
+        return {"bleu": bleu.score, "bert": bert[2][0].cpu().detach().tolist()}
 
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
     model.to(args.device)
 
-    def add_instruction_token(sample):
-        sample["source"] = f"summarize: {sample['source']}"
-        return sample
+    detectors: List[ScorerType] = [
+        SequenceRenyiNegScorer(
+            alpha=a,
+            temperature=t,
+            mode="token",  # input, output, token
+            num_return_sequences=args.num_return_sequences,
+            num_beam=args.num_return_sequences,
+        )
+        for t in [0.5, 1, 1.5, 2]
+        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
+    ] + [
+        SequenceRenyiNegScorer(
+            alpha=a,
+            temperature=t,
+            mode="input",  # input, output, token
+            num_return_sequences=args.num_return_sequences,
+            num_beam=args.num_return_sequences,
+        )
+        for t in [0.5, 1, 1.5, 2]
+        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
+    ]
 
     # Load the reference set
 
@@ -130,39 +132,7 @@ if __name__ == "__main__":
         0,
         args.validation_size,
         args.test_size,
-        update_input_fn=add_instruction_token,
     )
-
-    # idf = prepare_idf(tokenizer, model, validation_loader)
-
-    detectors: List[ScorerType] = [
-        SequenceRenyiNegScorer(
-            alpha=a,
-            temperature=t,
-            mode="token",  # input, output, token
-            num_return_sequences=args.num_return_sequences,
-            num_beam=args.num_return_sequences,
-            pad_token_id=tokenizer.pad_token_id,
-        )
-        for t in [0.1, 0.5, 1, 1.5, 2, 3]
-        for a in [0.1, 0.5, 0.9, 1.0, 1.1, 1.5, 2, 3]
-    ]
-
-    detectors += [
-        BeamRenyiInformationProjection(
-            alpha=a,
-            temperature=t,
-            use_soft_projection=True,
-            n_neighbors=2,
-            pad_token_id=tokenizer.pad_token_id,
-            num_beams=args.num_return_sequences,
-            num_return_sequences=args.num_return_sequences,
-        )
-        for t in [0.1, 0.5, 1, 1.5, 2, 3]
-        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
-    ]
-
-    detectors.extend([MahalanobisScorer(), CosineProjectionScorer()])
 
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
@@ -180,10 +150,6 @@ if __name__ == "__main__":
         num_return_sequences=args.num_return_sequences,
         max_length=150,
         metric_eval=metric_eval,
-        num_beam_groups=None,
-        diversity_penalty=None,
-        do_sample=True,
-        top_k=1000,
     )
 
     inval_ds_scores_path = Path(args.output_dir) / (
@@ -206,16 +172,9 @@ if __name__ == "__main__":
         detectors,
         num_beams=args.num_return_sequences,
         num_return_sequences=args.num_return_sequences,
-        max_length=150,
+        max_length=50,
         metric_eval=metric_eval,
-        # num_beam_groups=args.num_return_sequences,
-        # diversity_penalty=0.5,
-        do_sample=True,
-        top_k=1000,
     )
-
-    records["out_config"] = args.in_config
-    records["in_config"] = args.in_config
 
     in_ds_scores_path = Path(args.output_dir) / (
         "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
@@ -223,3 +182,32 @@ if __name__ == "__main__":
     in_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
     dump_json(records, in_ds_scores_path, append=args.append)
+
+    # ====================== Evaluate the detectors on the (out) test sets ====================== #
+
+    print("BEGIN OOD EVALUATION")
+    for out_config in tqdm(args.out_configs):
+        # Load the out-of-distribution set
+        _, _, test_loader = load_requested_dataset(
+            out_config, tokenizer, args.batch_size, 0, 0, args.test_size
+        )
+
+        # Evaluate the model on the (out) test set
+        print("Evaluating on the out-of-distribution test set")
+        records = evaluate_dataloader(
+            model,
+            test_loader,
+            tokenizer,
+            detectors,
+            num_beams=args.num_return_sequences,
+            num_return_sequences=args.num_return_sequences,
+            max_length=150,
+            metric_eval=metric_eval,
+        )
+
+        out_ds_scores_path = Path(args.output_dir) / (
+            "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
+        )
+        out_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
+
+        dump_json(records, out_ds_scores_path, append=args.append)

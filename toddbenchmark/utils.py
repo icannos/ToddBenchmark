@@ -1,7 +1,12 @@
 import json
-from json import encoder
 
-encoder.FLOAT_REPR = lambda o: format(o, ".3f")
+
+class RoundingFloat(float):
+    __repr__ = staticmethod(lambda x: format(x, ".3E"))
+
+
+json.encoder.c_make_encoder = None
+json.encoder.float = RoundingFloat
 
 
 def dump_json(records, path, append=False):
@@ -22,6 +27,7 @@ def sanitize_model_name(model_name: str) -> str:
     :return: Sanitized model name
     """
     return model_name.replace("/", "_")
+
 
 def mk_file_name(model_name: str, dataset_in_config, dataset_out_config) -> str:
     """
