@@ -72,4 +72,5 @@ opt-iml-model:
 opt-iml-tokenizer:
   (): scripts.configs.wrapper.AutoTokenizerWrapper
   pretrained_model_name_or_path: "facebook/opt-iml-max-1.3b"
+  use_fast: false
   padding_side: "left"

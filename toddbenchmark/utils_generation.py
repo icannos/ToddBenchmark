@@ -29,7 +29,7 @@ def prepare_idf(
     inputs = inputs.to(model.device)
     vocab_size = model.generate(input_ids=inputs["input_ids"],
                                 attention_mask=inputs["attention_mask"],
-                                # max_length=16,
+                                max_length=200,
                                 return_dict_in_generate=True,
                                 output_scores=True,
                                 ).scores[0].shape[1]
