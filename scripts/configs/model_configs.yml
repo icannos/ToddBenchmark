@@ -66,7 +66,7 @@ bert-base-tokenizer:
 opt-iml-model:
   (): scripts.configs.wrapper.AutoModelForCausalLMWrapper
   pretrained_model_name_or_path: "facebook/opt-iml-max-1.3b"
-  # torch_dtype: torch.float16
+  torch_dtype: !ext torch.float16
   # device_map: auto
 
 opt-iml-tokenizer:

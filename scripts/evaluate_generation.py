@@ -145,7 +145,7 @@ if __name__ == "__main__":
         detectors,
         num_beams=experiment_args.num_return_sequences,
         num_return_sequences=experiment_args.num_return_sequences,
-        max_length=150,
+        max_length=experiment_args.max_length,
         metric_eval=metric_eval,
     )
 
@@ -172,7 +172,7 @@ if __name__ == "__main__":
             detectors,
             num_beams=experiment_args.num_return_sequences,
             num_return_sequences=experiment_args.num_return_sequences,
-            max_length=150,
+            max_length=experiment_args.max_length,
             metric_eval=metric_eval,
         )
 

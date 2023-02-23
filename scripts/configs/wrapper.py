@@ -27,7 +27,7 @@ class ExperimentArgs:
     def __init__(self,
                  batch_size: int = 8,
                  num_workers: int = 4,
-                 max_length: int = 150,
+                 max_length: int = 250,
                  num_return_sequences: int = 1,
                  seed: int = 42,
                  output_dir: str = "output/",
