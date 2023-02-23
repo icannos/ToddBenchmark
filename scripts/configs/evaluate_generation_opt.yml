@@ -28,10 +28,6 @@ detectors:
     tokenizer: !import:bert-base-tokenizer model_configs.yml
 
   - (): Todd.MahalanobisScorer
-    layers: [-1]
-    use_first_token_only: true
-    chosen_state: "encoder_hidden_states"
-  - (): Todd.MahalanobisScorer
     layers: [ -1 ]
     use_first_token_only: true
     chosen_state: "decoder_hidden_states"
@@ -45,10 +41,6 @@ detectors:
 ##    use_first_token_only: false
 ##    chosen_state: "decoder_hidden_states"
 #
-  - (): Todd.CosineProjectionScorer
-    layers: [-1]
-    use_first_token_only: true
-    chosen_state: "encoder_hidden_states"
   - (): Todd.CosineProjectionScorer
     layers: [ -1 ]
     use_first_token_only: true
