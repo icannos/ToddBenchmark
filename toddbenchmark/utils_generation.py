@@ -5,6 +5,7 @@ import torch
 from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
 import evaluate
+from transformers import GenerationConfig
 
 from Todd import ScorerType
 
@@ -124,15 +125,11 @@ def evaluate_dataloader(
     data_loader: DataLoader,
     tokenizer,
     detectors: List[ScorerType],
-    num_beams: int,
-    num_return_sequences: int,
-    max_length: int,
+    generation_config: GenerationConfig,
     metric_eval: Optional[Callable] = None,
-    do_sample: bool = False,
-    top_k: Optional[int] = 0,
-    num_beam_groups: Optional[int] = None,
-    diversity_penalty: Optional[float] = None,
 ) -> Dict[str, List]:
+
+    num_return_sequences = generation_config.num_return_sequences
 
     # Initialize the scores dictionary
     records: Dict[str, List] = {
@@ -157,17 +154,7 @@ def evaluate_dataloader(
         output = model.generate(
             input_ids=inputs["input_ids"],
             attention_mask=inputs["attention_mask"],
-            max_length=max_length,
-            num_beams=num_beams,
-            num_return_sequences=num_return_sequences,
-            early_stopping=True,
-            return_dict_in_generate=True,
-            output_scores=True,
-            output_hidden_states=True,
-            do_sample=do_sample,
-            top_k=top_k,
-            # num_beam_groups=num_beam_groups,
-            # diversity_penalty=diversity_penalty,
+            generation_config=generation_config,
         )
 
         # Should be a dictionary with keys ood scores,
