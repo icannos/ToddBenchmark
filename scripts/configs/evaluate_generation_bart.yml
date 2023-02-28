@@ -14,7 +14,7 @@ tokenizer: !import:bart-large-cnn-tokenizer model_configs.yml
 
 detectors:
   - (): Todd.T5QueryScorer
-    batch_size: 8
+    batch_size: 4
     loss_on_first_word_only: true
     model: !import:t5-base-model model_configs.yml
     tokenizer: !import:t5-base-tokenizer model_configs.yml

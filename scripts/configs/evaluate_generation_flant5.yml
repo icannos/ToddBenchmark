@@ -9,51 +9,46 @@ bleu_scorer:
   trg_lang: ""
   effective_order: True
 
-model: !import:t5-base-model model_configs.yml
-tokenizer: !import:t5-base-tokenizer model_configs.yml
+model: !import:flan-t5-xl-model model_configs.yml
+tokenizer: !import:flan-t5-xl-tokenizer model_configs.yml
 
 detectors:
   - (): Todd.T5QueryScorer
-    prefix: "translate from English to French: "
     batch_size: 4
     loss_on_first_word_only: true
+    prefix: "Q: "
+    suffix: " A: "
     model: !import:t5-base-model model_configs.yml
     tokenizer: !import:t5-base-tokenizer model_configs.yml
   - (): Todd.BartQueryScorer
     batch_size: 4
+    prefix: "Q: "
+    suffix: " A: "
     loss_on_first_word_only: false
-    prefix: "translate from English to French: "
     model: !import:bart-base-model model_configs.yml
     tokenizer: !import:bart-base-tokenizer model_configs.yml
   - (): Todd.BertQueryScorer
-    prefix: "translate from English to French: "
     batch_size: 4
+    prefix: "Q: "
+    suffix: " A: "
     loss_on_first_word_only: true
     model: !import:bert-base-model model_configs.yml
     tokenizer: !import:bert-base-tokenizer model_configs.yml
 
   - (): Todd.MahalanobisScorer
-    layers: [-1]
-    use_first_token_only: true
-    chosen_state: "encoder_hidden_states"
-  - (): Todd.MahalanobisScorer
-    layers: [ -1 ]
-    use_first_token_only: true
-    chosen_state: "decoder_hidden_states"
-
-  - (): Todd.MahalanobisScorer
-    layers: [-1]
-    use_first_token_only: false
-    chosen_state: "encoder_hidden_states"
-  - (): Todd.MahalanobisScorer
     layers: [ -1 ]
     use_first_token_only: false
     chosen_state: "decoder_hidden_states"
-
-  - (): Todd.CosineProjectionScorer
-    layers: [-1]
-    use_first_token_only: false
-    chosen_state: "encoder_hidden_states"
+#
+##  - (): Todd.MahalanobisScorer
+##    layers: [-1]
+##    use_first_token_only: false
+##    chosen_state: "encoder_hidden_states"
+##  - (): Todd.MahalanobisScorer
+##    layers: [ -1 ]
+##    use_first_token_only: false
+##    chosen_state: "decoder_hidden_states"
+#
   - (): Todd.CosineProjectionScorer
     layers: [ -1 ]
     use_first_token_only: false
