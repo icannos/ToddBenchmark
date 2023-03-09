@@ -13,22 +13,19 @@ model: !import:flan-t5-base-model model_configs.yml
 tokenizer: !import:flan-t5-base-tokenizer model_configs.yml
 
 detectors:
-#  - (): Todd.T5QueryScorer
-#    prefix: "Summarize: "
-#    batch_size: 4
-#    loss_on_first_word_only: true
-#    model: !import:t5-base-model model_configs.yml
-#    tokenizer: !import:t5-base-tokenizer model_configs.yml
+  - (): Todd.T5QueryScorer
+    prefix: "Summarize: "
+    batch_size: 8
+    model: !import:t5-base-model model_configs.yml
+    tokenizer: !import:t5-base-tokenizer model_configs.yml
   - (): Todd.BartQueryScorer
-    batch_size: 4
-    loss_on_first_word_only: false
+    batch_size: 8
     prefix: "Summarize: "
     model: !import:bart-base-model model_configs.yml
     tokenizer: !import:bart-base-tokenizer model_configs.yml
   - (): Todd.BertQueryScorer
     prefix: "Summarize: "
-    batch_size: 4
-    loss_on_first_word_only: true
+    batch_size: 8
     model: !import:bert-base-model model_configs.yml
     tokenizer: !import:bert-base-tokenizer model_configs.yml
 
