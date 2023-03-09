@@ -224,7 +224,12 @@ def evaluate_dataloader(
             sequences_scores = [0.0] * len(batch)  # TODO: fix this
 
         records["likelihood"].extend(sequences_scores)
-        # print(records)
+    for metric in list(records.keys()):
+        if "QueryScorer" in metric:
+            keys = [list(x.keys())[0] for x in records[metric][0]]
+            swapped_dict = {k: [x[i][k] for x in records[metric]] for i, k in enumerate(keys)}
+            records[metric] = swapped_dict
+    # print(records)
 
     return records
 
