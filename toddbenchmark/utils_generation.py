@@ -29,7 +29,7 @@ def fit_models(
                                 return_dict_in_generate=True,
                                 output_scores=True,
                                 ).scores
-        probs.append(torch.concatenate(scores, dim=0).softmax(dim=1).mean(dim=0))
+        probs.append(torch.cat(scores, dim=0).softmax(dim=1).mean(dim=0))
     probs = torch.stack(probs).mean(dim=0)
     return probs
 
