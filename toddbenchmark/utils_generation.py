@@ -12,39 +12,26 @@ from Todd import ScorerType
 from Todd.query_based_scorers import QueryBasedScorer
 
 
-def prepare_idf(
+def fit_models(
         tokenizer,
         model,
         loader: DataLoader,
 ):
 
-    input_refs = []
+    probs = []
     for batch in loader:
         inputs = tokenizer(
             batch["source"], padding=True, truncation=True, return_tensors="pt"
-        )
-        input_refs.extend(inputs.input_ids.tolist())
-
-    # Mock generation to get the vocab size
-    inputs = inputs.to(model.device)
-    vocab_size = model.generate(input_ids=inputs["input_ids"],
+        ).to(model.device)
+        scores = model.generate(input_ids=inputs["input_ids"],
                                 attention_mask=inputs["attention_mask"],
                                 max_length=200,
                                 return_dict_in_generate=True,
                                 output_scores=True,
-                                ).scores[0].shape[1]
-    idf_count = Counter()
-    num_docs = len(input_refs)
-
-    idf_count.update(sum([list(set(i)) for i in input_refs], []))
-
-    idf_dict = defaultdict(lambda: log((num_docs + 1) / (1)))
-    idf_dict.update({idx: log((num_docs + 1) / (c + 1)) for (idx, c) in idf_count.items()})
-
-    idf = torch.ones(vocab_size, dtype=torch.float) * (log((num_docs + 1) / (0 + 1)))
-    for idx, c in idf_dict.items():
-        idf[idx] = c
-    return idf / idf.sum()
+                                ).scores
+        probs.append(torch.concatenate(scores, dim=0).softmax(dim=1).mean(dim=0))
+    probs = torch.stack(probs).mean(dim=0)
+    return probs
 
 
 def prepare_detectors(
@@ -88,7 +75,10 @@ def prepare_detectors(
             #         v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
 
             for detector in detectors:
-                detector.accumulate(output)
+                if not isinstance(detector, QueryBasedScorer):
+                    detector.accumulate(output)
+                else:
+                    detector.accumulate(batch["source"])
 
     for detector in detectors:
         detector.fit()

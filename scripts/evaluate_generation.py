@@ -21,7 +21,7 @@ from toddbenchmark.generation_datasets_configs import (
 )
 from toddbenchmark.utils_generation import (
     prepare_detectors,
-    prepare_idf,
+    fit_models,
     evaluate_dataloader,
 )
 from sacrebleu import BLEU
@@ -80,7 +80,7 @@ if __name__ == "__main__":
         experiment_args.validation_size,
         experiment_args.test_size,
     )
-    idf = prepare_idf(tokenizer, model, validation_loader)
+    ref_probs = fit_models(tokenizer, model, validation_loader)
 
     detectors:  List[ScorerType] = config["detectors"]
     detectors.extend([SequenceRenyiNegDataFittedScorer(
@@ -89,8 +89,11 @@ if __name__ == "__main__":
         mode="input",  # mode="token",  # input, output, token
         num_return_sequences=experiment_args.num_return_sequences,
         num_beam=experiment_args.num_return_sequences,
-        reference_vocab_distribution=idf.to(model.device),
-    ) for t in [0.5, 1, 1.5, 2, 5] for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
+        reference_vocab_distribution=ref_probs.to(model.device),
+    )
+        for t in [0.5, 1, 2, 5]
+        for a in [0.05, 0.1, 0.5, 2, 3]
+    ])
 
     detectors.extend([
         SequenceRenyiNegScorer(
@@ -100,16 +103,16 @@ if __name__ == "__main__":
             num_return_sequences=experiment_args.num_return_sequences,
             num_beam=experiment_args.num_return_sequences,
         )
-        for t in [0.5, 1, 1.5, 2, 5]
-        for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
+        for t in [0.5, 1,  2, 5]
+        for a in [0.05, 0.1, 0.5, 1, 2, 3]
     ])
 
-    detectors.extend([BeamRenyiInformationProjection(
-        alpha=a,
-        num_return_sequences=experiment_args.num_return_sequences,
-        num_beams=experiment_args.num_return_sequences,
-        mode="output",
-    ) for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
+    # detectors.extend([BeamRenyiInformationProjection(
+    #     alpha=a,
+    #     num_return_sequences=experiment_args.num_return_sequences,
+    #     num_beams=experiment_args.num_return_sequences,
+    #     mode="output",
+    # ) for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
 
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
