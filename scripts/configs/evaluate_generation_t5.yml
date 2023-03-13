@@ -28,6 +28,11 @@ detectors:
     batch_size: 8
     model: !import:bert-base-model model_configs.yml
     tokenizer: !import:bert-base-tokenizer model_configs.yml
+  - (): Todd.XLMRobertaQueryScorer
+    prefix: "translate from English to French: "
+    batch_size: 8
+    model: !import:xlmroberta-base-model model_configs.yml
+    tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
 
   - (): Todd.MahalanobisScorer
     layers: [-1]

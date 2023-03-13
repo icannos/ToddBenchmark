@@ -78,7 +78,10 @@ def prepare_detectors(
                 if not isinstance(detector, QueryBasedScorer):
                     detector.accumulate(output)
                 else:
-                    detector.accumulate(batch["source"])
+                    sentence_pairs = list(zip(batch["source"],
+                                              [tokenizer.decode(output.sequences[i], skip_special_tokens=True) for i in
+                                               range(0, len(output.sequences), kwargs.get("num_return_sequences", 4))]))
+                    detector.accumulate(sentence_pairs if detector.concat_output else batch["source"], model, tokenizer)
 
     for detector in detectors:
         detector.fit()
@@ -142,11 +145,6 @@ def evaluate_dataloader(
         #     batch["target"], padding=True, truncation=True, return_tensors="pt"
         # ).to(model.device)
 
-        # inputs = {k: v.to(model.device) for k, v in inputs.items()}
-        for detector in detectors:
-            if isinstance(detector, QueryBasedScorer):
-                records[f"{detector}+score"].extend(detector.score_sentences(batch["source"], model, tokenizer))
-
         with torch.no_grad():
             output = model.generate(
                 input_ids=inputs["input_ids"],
@@ -160,6 +158,14 @@ def evaluate_dataloader(
                 output_scores=True,
                 output_hidden_states=True,
             )
+
+            # inputs = {k: v.to(model.device) for k, v in inputs.items()}
+            sentence_pairs = list(zip(batch["source"],
+                                      [tokenizer.decode(output.sequences[i], skip_special_tokens=True) for i in
+                                       range(0, len(output.sequences), num_return_sequences)]))
+            for detector in detectors:
+                if isinstance(detector, QueryBasedScorer):
+                    records[f"{detector}+score"].extend(detector.score_sentences(sentence_pairs if detector.concat_output else batch["source"], model, tokenizer))
 
             # output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
             #     v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
