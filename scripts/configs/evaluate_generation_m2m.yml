@@ -31,12 +31,12 @@ detectors:
     tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
   - (): Todd.ClassifierScorer
     chosen_state: "encoder_hidden_states"
-    hidden_size: 4096
+    hidden_size: 1024
     batch_size: 8
     num_train_epochs: 10
   - (): Todd.ClassifierScorer
     chosen_state: "decoder_hidden_states"
-    hidden_size: 4096
+    hidden_size: 1024
     batch_size: 8
     num_train_epochs: 10
 
