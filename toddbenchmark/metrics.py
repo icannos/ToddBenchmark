@@ -84,7 +84,8 @@ def compute_detection_metrics(
         aupr_out,
         thr
     """
-
+    fixed_tpr_scores = np.nan_to_num(fixed_tpr_scores, nan=0, posinf=100, neginf=-100)
+    detect_scores = np.nan_to_num(detect_scores, nan=0, posinf=100, neginf=-100)
     # configured to detect in-distribution samples if pos_label=1
     pos_label = 1
     pos = pos_label * np.ones(len(fixed_tpr_scores))

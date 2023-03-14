@@ -29,6 +29,11 @@ detectors:
     batch_size: 8
     model: !import:xlmroberta-base-model model_configs.yml
     tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
+  - (): Todd.ClassifierScorer
+    chosen_state: "encoder_hidden_states"
+    hidden_size: 1024
+    batch_size: 8
+    num_train_epochs: 10
 
 
   - (): Todd.MahalanobisScorer
