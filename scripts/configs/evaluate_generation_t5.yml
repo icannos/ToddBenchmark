@@ -38,6 +38,11 @@ detectors:
     hidden_size: 768
     batch_size: 8
     num_train_epochs: 10
+  - (): Todd.ClassifierScorer
+    chosen_state: "decoder_hidden_states"
+    hidden_size: 768
+    batch_size: 8
+    num_train_epochs: 10
 
   - (): Todd.MahalanobisScorer
     layers: [-1]
