@@ -33,6 +33,11 @@ detectors:
     batch_size: 8
     model: !import:xlmroberta-base-model model_configs.yml
     tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
+  - (): Todd.ClassifierScorer
+    chosen_state: "encoder_hidden_states"
+    hidden_size: 768
+    batch_size: 8
+    num_train_epochs: 10
 
   - (): Todd.MahalanobisScorer
     layers: [-1]
@@ -69,6 +74,6 @@ experiment_args:
   seed: 42
   append: false
   device: "cuda"
-  batch_size: 8
-  # validation_size: 64
-  # test_size: 200
+  batch_size: 2
+  validation_size: 50
+  test_size: 50

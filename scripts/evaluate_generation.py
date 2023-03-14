@@ -21,6 +21,7 @@ from toddbenchmark.generation_datasets_configs import (
 )
 from toddbenchmark.utils_generation import (
     prepare_detectors,
+    prepare_detectors_out,
     fit_models,
     evaluate_dataloader,
 )
@@ -116,6 +117,20 @@ if __name__ == "__main__":
 
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
+
+    # Load the reference set
+    _, validation_loader_out, _ = load_requested_dataset(
+        args.out_configs[0],
+        tokenizer,
+        experiment_args.batch_size,
+        0,
+        experiment_args.validation_size,
+        experiment_args.test_size,
+    )
+    detectors = prepare_detectors_out(detectors, model, validation_loader_out, tokenizer)
+    del validation_loader_out
+
+
 
     # ====================== Evaluate the detectors on the (in) validation set ====================== #
 

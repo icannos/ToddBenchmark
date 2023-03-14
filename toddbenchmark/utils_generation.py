@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 
 from Todd import ScorerType
 from Todd.query_based_scorers import QueryBasedScorer
+from Todd.classifier_scorer import ClassifierScorer
 
 
 def fit_models(
@@ -32,6 +33,46 @@ def fit_models(
         probs.append(torch.cat(scores, dim=0).softmax(dim=1).mean(dim=0))
     probs = torch.stack(probs).mean(dim=0)
     return probs
+
+
+def prepare_detectors_out(
+        detectors: List[ScorerType],
+        model,
+        loader: DataLoader,
+        tokenizer,
+        **kwargs
+) -> List[ScorerType]:
+    with torch.no_grad():
+        for batch in tqdm(loader):
+
+            inputs = tokenizer(
+                batch["source"], padding=True, truncation=True, return_tensors="pt"
+            ).to(model.device)
+
+            output = model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                max_length=kwargs.get("max_length", 200),
+                num_beams=kwargs.get("num_beams", 4),
+                num_return_sequences=kwargs.get("num_return_sequences", 4),
+                early_stopping=True,
+                return_dict_in_generate=True,
+                output_scores=True,
+                output_hidden_states=True,
+            )
+            # output = BeamSearchEncoderDecoderOutput({k: v.to("cpu") if isinstance(v, torch.Tensor) else tuple(
+            #     v_element.to("cpu") if isinstance(v_element, torch.Tensor) else tuple(
+            #         v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
+
+            for detector in detectors:
+                if isinstance(detector, ClassifierScorer):
+                    detector.accumulate(output, [1])
+
+    for detector in detectors:
+        if isinstance(detector, ClassifierScorer):
+            detector.fit()
+
+    return detectors
 
 
 def prepare_detectors(
@@ -75,16 +116,19 @@ def prepare_detectors(
             #         v_elem.to("cpu") for v_elem in v_element) for v_element in v) for k, v in output.items()})
 
             for detector in detectors:
-                if not isinstance(detector, QueryBasedScorer):
-                    detector.accumulate(output)
-                else:
+                if isinstance(detector, QueryBasedScorer):
                     sentence_pairs = list(zip(batch["source"],
                                               [tokenizer.decode(output.sequences[i], skip_special_tokens=True) for i in
                                                range(0, len(output.sequences), kwargs.get("num_return_sequences", 4))]))
                     detector.accumulate(sentence_pairs if detector.concat_output else batch["source"], model, tokenizer)
+                elif isinstance(detector, ClassifierScorer):
+                    detector.accumulate(output, [0])
+                else:
+                    detector.accumulate(output)
 
     for detector in detectors:
-        detector.fit()
+        if not isinstance(detector, ClassifierScorer):  # Don't fit it until it has OOD data
+            detector.fit()
 
     return detectors
 
