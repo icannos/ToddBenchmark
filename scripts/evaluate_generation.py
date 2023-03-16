@@ -118,7 +118,7 @@ if __name__ == "__main__":
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
 
-    # Load the reference set
+    # For the classifier scorers, we need to fit them on the (out) validation set
     _, validation_loader_out, _ = load_requested_dataset(
         args.out_configs[0],
         tokenizer,
