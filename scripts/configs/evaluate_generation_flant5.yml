@@ -33,12 +33,12 @@ detectors:
     tokenizer: !import:bert-base-tokenizer model_configs.yml
   - (): Todd.ClassifierScorer
     chosen_state: "encoder_hidden_states"
-    hidden_size: 768
+    hidden_size: 2048
     batch_size: 8
     num_train_epochs: 10
   - (): Todd.ClassifierScorer
     chosen_state: "decoder_hidden_states"
-    hidden_size: 768
+    hidden_size: 2048
     batch_size: 8
     num_train_epochs: 10
 
