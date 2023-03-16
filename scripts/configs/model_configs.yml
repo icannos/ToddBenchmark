@@ -68,6 +68,15 @@ xlmroberta-base-model:
   pretrained_model_name_or_path: "xlm-roberta-base"
   # device_map: auto
 
+xlm-base-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "xlm-mlm-en-2048"
+
+xlm-base-model:
+  (): scripts.configs.wrapper.AutoModelForMaskedLMWrapper
+  pretrained_model_name_or_path: "xlm-mlm-en-2048"
+  # device_map: auto
+
 bert-base-tokenizer:
   (): scripts.configs.wrapper.AutoTokenizerWrapper
   pretrained_model_name_or_path: "bert-base-uncased"
