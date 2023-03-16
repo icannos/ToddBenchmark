@@ -23,21 +23,21 @@ detectors:
     prefix: "translate from English to French: "
     model: !import:bart-base-model model_configs.yml
     tokenizer: !import:bart-base-tokenizer model_configs.yml
-#  - (): Todd.BertQueryScorer
-#    prefix: "translate from English to French: "
-#    batch_size: 8
-#    model: !import:bert-base-model model_configs.yml
-#    tokenizer: !import:bert-base-tokenizer model_configs.yml
-#  - (): Todd.XLMRobertaQueryScorer
-#    prefix: "translate from English to French: "
-#    batch_size: 8
-#    model: !import:xlmroberta-base-model model_configs.yml
-#    tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
-#  - (): Todd.ClassifierScorer
-#    chosen_state: "encoder_hidden_states"
-#    hidden_size: 768
-#    batch_size: 8
-#    num_train_epochs: 10
+  - (): Todd.BertQueryScorer
+    prefix: "translate from English to French: "
+    batch_size: 8
+    model: !import:bert-base-model model_configs.yml
+    tokenizer: !import:bert-base-tokenizer model_configs.yml
+  - (): Todd.XLMRobertaQueryScorer
+    prefix: "translate from English to French: "
+    batch_size: 8
+    model: !import:xlmroberta-base-model model_configs.yml
+    tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
+  - (): Todd.ClassifierScorer
+    chosen_state: "encoder_hidden_states"
+    hidden_size: 768
+    batch_size: 8
+    num_train_epochs: 10
   - (): Todd.XLMRobertaTrainedQueryScorer
     prefix: "translate from English to French: "
     batch_size: 4
@@ -46,7 +46,7 @@ detectors:
     # model: !import:xlmroberta-base-model model_configs.yml
     # tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
     device: "cuda"
-    num_train_epochs: 10
+    num_train_epochs: 20
 
   - (): Todd.MahalanobisScorer
     layers: [-1]

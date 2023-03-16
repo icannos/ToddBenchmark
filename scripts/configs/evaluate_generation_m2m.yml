@@ -39,6 +39,15 @@ detectors:
     hidden_size: 1024
     batch_size: 8
     num_train_epochs: 10
+  - (): Todd.XLMRobertaTrainedQueryScorer
+    prefix: "translate from English to French: "
+    batch_size: 4
+    model: !import:xlm-base-model model_configs.yml
+    tokenizer: !import:xlm-base-tokenizer model_configs.yml
+    # model: !import:xlmroberta-base-model model_configs.yml
+    # tokenizer: !import:xlmroberta-base-tokenizer model_configs.yml
+    device: "cuda"
+    num_train_epochs: 20
 
 
   - (): Todd.MahalanobisScorer
