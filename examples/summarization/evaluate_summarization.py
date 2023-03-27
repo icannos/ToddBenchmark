@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import List
 from rouge_score import rouge_scorer
 
+from mauve import compute_mauve
 import torch
 from tqdm import tqdm
 
@@ -33,6 +34,8 @@ from bert_score import BERTScorer
 
 from toddbenchmark.utils import dump_json
 
+from transformers.generation import GenerationConfig
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Finetune a model on a dataset")
@@ -48,10 +51,11 @@ def parse_args():
     )
 
     parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--num_return_sequences", type=int, default=4)
+    parser.add_argument("--num_return_sequences", type=int, default=8)
 
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--instruction", type=str, default="summarize")
 
     # Dataset max sizes
     parser.add_argument(
@@ -117,9 +121,20 @@ if __name__ == "__main__":
     model, tokenizer = prep_model(args.model_name)
     model.to(args.device)
 
-    def add_instruction_token(sample):
-        sample["source"] = f"summarize: {sample['source']}"
-        return sample
+    if args.instruction == "summarize":
+
+        def add_instruction_token(sample):
+            sample["source"] = f"summarize: {sample['source']}"
+            return sample
+
+    elif args.instruction == "translate":
+
+        def add_instruction_token(sample):
+            sample["source"] = f"translate in english: {sample['source']}"
+            return sample
+
+    else:
+        raise ValueError("Unknown instruction")
 
     # Load the reference set
 
@@ -153,13 +168,15 @@ if __name__ == "__main__":
             alpha=a,
             temperature=t,
             use_soft_projection=True,
-            n_neighbors=2,
+            n_neighbors=n,
             pad_token_id=tokenizer.pad_token_id,
             num_beams=args.num_return_sequences,
             num_return_sequences=args.num_return_sequences,
+            mode="output",
         )
-        for t in [0.1, 0.5, 1, 1.5, 2, 3]
-        for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
+        for t in [0.1, 0.5, 1, 1.5, 2, 3, 5, 10, 15, 20]
+        for a in [0.01, 0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
+        for n in [2, 4, 6, 8, 12, 14]
     ]
 
     detectors.extend([MahalanobisScorer(), CosineProjectionScorer()])
@@ -171,19 +188,25 @@ if __name__ == "__main__":
 
     # Evaluate the model on the (in) validation set:
     print("Evaluating on the in-distribution validation set")
+
+    gen_config = GenerationConfig(
+        num_beams=args.num_return_sequences // 8,
+        num_return_sequences=args.num_return_sequences,
+        temperature=1.0,
+        max_length=150,
+        do_sample=True,
+        top_k=1000,
+        return_dict_in_generate=True,
+        output_scores=True,
+        output_hidden_states=True,
+    )
     records = evaluate_dataloader(
         model,
         validation_loader,
         tokenizer,
         detectors,
-        num_beams=args.num_return_sequences,
-        num_return_sequences=args.num_return_sequences,
-        max_length=150,
         metric_eval=metric_eval,
-        num_beam_groups=None,
-        diversity_penalty=None,
-        do_sample=True,
-        top_k=1000,
+        generation_config=gen_config,
     )
 
     inval_ds_scores_path = Path(args.output_dir) / (
@@ -204,14 +227,8 @@ if __name__ == "__main__":
         test_loader,
         tokenizer,
         detectors,
-        num_beams=args.num_return_sequences,
-        num_return_sequences=args.num_return_sequences,
-        max_length=150,
         metric_eval=metric_eval,
-        # num_beam_groups=args.num_return_sequences,
-        # diversity_penalty=0.5,
-        do_sample=True,
-        top_k=1000,
+        generation_config=gen_config,
     )
 
     records["out_config"] = args.in_config

@@ -129,7 +129,10 @@ def load_tatoeba_dataset(
     dataset_name,
     dataset_config,
 ):
-    datasets = try_load_dataset_config(dataset_name, dataset_config)
+    datasets = try_load_dataset_config(
+        dataset_name,
+        dataset_config,
+    )
     src, tgt = dataset_config.split("-")
     if datasets["test"]["sourceLang"][0] == src:
         source_string = "sourceString"

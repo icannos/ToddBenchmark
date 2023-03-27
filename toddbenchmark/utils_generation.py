@@ -214,15 +214,13 @@ def try_load_dataset_config(dataset_name: str, dataset_config: str) -> DatasetDi
     # Try to load the dataset from the datasets library with one config or its permutation
     try:
         dataset = load_dataset(dataset_name, dataset_config)
-    except ValueError:
+    except Exception:
         dataset_config = tgt + "-" + src
         src, tgt = dataset_config.split("-")
 
         try:
-            dataset = load_dataset(
-                dataset_name, dataset_config, ignore_verifications=True
-            )
-        except ValueError:
+            dataset = load_dataset(dataset_name, dataset_config)
+        except Exception:
             raise ValueError(
                 "Invalid dataset config. None of the following configs are valid: "
                 + dataset_config

@@ -2,7 +2,7 @@ import json
 
 
 class RoundingFloat(float):
-    __repr__ = staticmethod(lambda x: format(x, ".3E"))
+    __repr__ = staticmethod(lambda x: format(x, ".3f"))
 
 
 json.encoder.c_make_encoder = None

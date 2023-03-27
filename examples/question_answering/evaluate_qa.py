@@ -5,6 +5,7 @@ from typing import List
 
 import torch
 from tqdm import tqdm
+from transformers import GenerationConfig
 
 from Todd import (
     ScorerType,
@@ -51,7 +52,7 @@ def parse_args():
     )
 
     parser.add_argument("--batch_size", type=int, default=2)
-    parser.add_argument("--num_return_sequences", type=int, default=2)
+    parser.add_argument("--num_return_sequences", type=int, default=16)
 
     parser.add_argument("--max_length", type=int, default=150)
     parser.add_argument("--seed", type=int, default=42)
@@ -73,7 +74,9 @@ def parse_args():
     parser.add_argument(
         "--device", type=str, default="cuda" if torch.cuda.is_available() else "cpu"
     )
-    parser.add_argument("--output_dir", type=str, default="output")
+    parser.add_argument(
+        "--output_dir", type=str, default="results/instruction_qa_sampling"
+    )
     parser.add_argument(
         "--append",
         action="store_true",
@@ -123,6 +126,26 @@ if __name__ == "__main__":
         for a in [0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
     ]
 
+    detectors += [
+        BeamRenyiInformationProjection(
+            alpha=a,
+            temperature=t,
+            use_soft_projection=True,
+            n_neighbors=n,
+            pad_token_id=tokenizer.pad_token_id,
+            num_beams=args.num_return_sequences,
+            num_return_sequences=args.num_return_sequences,
+            mode="output",
+        )
+        for t in [0.1, 0.5, 1, 1.5, 2, 3, 5, 10, 15, 20]
+        for a in [0.01, 0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
+        for n in [2, 4, 6, 8, 12, 14]
+    ]
+
+    def add_instruction_token(sample):
+        sample["source"] = f"Answer the question using the context: {sample['source']}"
+        return sample
+
     # Load the reference set
 
     _, validation_loader, test_loader = load_requested_dataset(
@@ -132,10 +155,23 @@ if __name__ == "__main__":
         0,
         args.validation_size,
         args.test_size,
+        update_input_fn=add_instruction_token,
     )
 
     # Fit the detectors on the behavior of the model on the (in) validation set
     detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
+
+    gen_config = GenerationConfig(
+        num_beams=args.num_return_sequences // 8,
+        num_return_sequences=args.num_return_sequences,
+        temperature=1.0,
+        max_length=150,
+        do_sample=True,
+        top_k=1000,
+        return_dict_in_generate=True,
+        output_scores=True,
+        output_hidden_states=True,
+    )
 
     # ====================== Evaluate the detectors on the (in) validation set ====================== #
 
@@ -146,10 +182,8 @@ if __name__ == "__main__":
         validation_loader,
         tokenizer,
         detectors,
-        num_beams=args.num_return_sequences,
-        num_return_sequences=args.num_return_sequences,
-        max_length=150,
         metric_eval=metric_eval,
+        generation_config=gen_config,
     )
 
     inval_ds_scores_path = Path(args.output_dir) / (
@@ -170,9 +204,7 @@ if __name__ == "__main__":
         test_loader,
         tokenizer,
         detectors,
-        num_beams=args.num_return_sequences,
-        num_return_sequences=args.num_return_sequences,
-        max_length=50,
+        generation_config=gen_config,
         metric_eval=metric_eval,
     )
 
@@ -189,7 +221,13 @@ if __name__ == "__main__":
     for out_config in tqdm(args.out_configs):
         # Load the out-of-distribution set
         _, _, test_loader = load_requested_dataset(
-            out_config, tokenizer, args.batch_size, 0, 0, args.test_size
+            out_config,
+            tokenizer,
+            args.batch_size,
+            0,
+            0,
+            args.test_size,
+            update_input_fn=add_instruction_token,
         )
 
         # Evaluate the model on the (out) test set
@@ -199,9 +237,7 @@ if __name__ == "__main__":
             test_loader,
             tokenizer,
             detectors,
-            num_beams=args.num_return_sequences,
-            num_return_sequences=args.num_return_sequences,
-            max_length=150,
+            generation_config=gen_config,
             metric_eval=metric_eval,
         )
 
