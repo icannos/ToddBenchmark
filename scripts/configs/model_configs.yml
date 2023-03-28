@@ -97,7 +97,7 @@ llama-model:
   (): scripts.configs.wrapper.AutoModelForCausalLMWrapper
   pretrained_model_name_or_path: "chavinlo/alpaca-native"
   torch_dtype: !ext torch.float16
-  load_in_8bit: true
+  # load_in_8bit: true
   device_map: auto
 
 llama-tokenizer:
