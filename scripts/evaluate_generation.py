@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import List
 
 from tqdm import tqdm
+import torch
 import configue
 
 from Todd import (
@@ -59,7 +60,8 @@ if __name__ == "__main__":
     # Load model
     experiment_args = config["experiment_args"]
     model = config["model"]
-    model.to(experiment_args.device)
+    if model.device != torch.cuda.device(experiment_args.device):
+        model.to(experiment_args.device)
     model.eval()
 
     tokenizer = config["tokenizer"]
