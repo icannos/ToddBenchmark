@@ -20,7 +20,7 @@ def fit_models(
 ):
 
     probs = []
-    for batch in loader:
+    for batch in tqdm(loader):
         inputs = tokenizer(
             batch["source"], padding=True, truncation=True, return_tensors="pt"
         ).to(model.device)

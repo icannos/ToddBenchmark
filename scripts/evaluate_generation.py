@@ -61,10 +61,7 @@ if __name__ == "__main__":
     experiment_args = config["experiment_args"]
     model = config["model"]
 
-    print(model.config)
-    print(model.device)
-    print(experiment_args.device)
-    if not model.config:
+    if not torch.cuda.device(model.device) == torch.cuda.device(experiment_args.device):
         model.to(experiment_args.device)
     model.eval()
 
@@ -87,8 +84,11 @@ if __name__ == "__main__":
         experiment_args.validation_size,
         experiment_args.test_size,
     )
+
+    print("Fitting models")
     ref_probs = fit_models(tokenizer, model, validation_loader)
 
+    print("Preparing detectors")
     detectors:  List[ScorerType] = config["detectors"]
     detectors.extend([SequenceRenyiNegDataFittedScorer(
         alpha=a,
@@ -122,8 +122,10 @@ if __name__ == "__main__":
     # ) for a in [0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]])
 
     # Fit the detectors on the behavior of the model on the (in) validation set
+    print("Fitting detectors")
     detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
 
+    print("Preparing detectors out - for classification based detectors")
     # For the classifier scorers, we need to fit them on the (out) validation set
     _, validation_loader_out, _ = load_requested_dataset(
         args.out_configs[0],
@@ -135,8 +137,6 @@ if __name__ == "__main__":
     )
     detectors = prepare_detectors_out(detectors, model, validation_loader_out, tokenizer)
     del validation_loader_out
-
-
 
     # ====================== Evaluate the detectors on the (in) validation set ====================== #
 
