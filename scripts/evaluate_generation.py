@@ -67,10 +67,11 @@ if __name__ == "__main__":
     model.eval()
 
     tokenizer = config["tokenizer"]
-    # Brute force code for quick alpaca
+    # TODO: remove - Brute force code for quick alpaca
     model.config.pad_token_id = tokenizer.pad_token_id = 0  # unk
     model.config.bos_token_id = 1
     model.config.eos_token_id = 2
+    # tokenizer.padding_side = "left"
 
     bertscorer: BERTScorer = config["bert_scorer"]
     bleuscorer: BLEU = config["bleu_scorer"]
