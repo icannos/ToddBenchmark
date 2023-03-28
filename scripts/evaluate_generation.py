@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # Load model
     experiment_args = config["experiment_args"]
     model = config["model"]
-    if not model.config.get("load_in_8_bit", None):
+    if not model.config.kwargs.get("load_in_8_bit", None):
         model.to(experiment_args.device)
     model.eval()
 
