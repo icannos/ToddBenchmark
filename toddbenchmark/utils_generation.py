@@ -117,10 +117,8 @@ def prepare_detectors(
 
             for detector in detectors:
                 if isinstance(detector, QueryBasedScorer):
-                    # tmp bug fix
-
                     # TODO: remove - this is just for debugging
-                    print(tokenizer.batch_decode(output.sequences, skip_special_tokens=True, clean_up_tokenization_spaces=True))
+                    # print(tokenizer.batch_decode(output.sequences, skip_special_tokens=True, clean_up_tokenization_spaces=True))
 
                     sentence_pairs = list(zip(batch["source"],
                                               [tokenizer.decode(output.sequences[i], skip_special_tokens=True) for i in
