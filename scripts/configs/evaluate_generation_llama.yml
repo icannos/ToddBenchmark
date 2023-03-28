@@ -58,6 +58,6 @@ experiment_args:
   seed: 42
   append: false
   device: "cuda"
-  batch_size: 4
+  batch_size: 2
   validation_size: 64
   # test_size: 200
