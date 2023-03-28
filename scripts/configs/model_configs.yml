@@ -92,3 +92,16 @@ opt-iml-tokenizer:
   pretrained_model_name_or_path: "facebook/opt-iml-max-1.3b"
   use_fast: false
   padding_side: "left"
+
+llama-model:
+  (): scripts.configs.wrapper.AutoModelForCausalLMWrapper
+  pretrained_model_name_or_path: "chavinlo/alpaca-native"
+  torch_dtype: !ext torch.float16
+  load_in_8bit: true
+  device_map: auto
+
+llama-tokenizer:
+  (): scripts.configs.wrapper.AutoTokenizerWrapper
+  pretrained_model_name_or_path: "chavinlo/alpaca-native"
+  use_fast: false
+  padding_side: "left"
