@@ -67,6 +67,8 @@ if __name__ == "__main__":
     model.eval()
 
     tokenizer = config["tokenizer"]
+    # Brute force code for quick alpaca
+    tokenizer.pad_token_id = 0
 
     bertscorer: BERTScorer = config["bert_scorer"]
     bleuscorer: BLEU = config["bleu_scorer"]
