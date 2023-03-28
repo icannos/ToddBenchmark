@@ -61,8 +61,8 @@ if __name__ == "__main__":
     experiment_args = config["experiment_args"]
     model = config["model"]
 
-    print(str(torch.cuda.device(experiment_args.device)), str(torch.cuda.device(model.device)))
-    if not str(torch.cuda.device(experiment_args.device)) in str(torch.cuda.device(model.device)):
+    print(experiment_args.device, model.device)
+    if not torch.cuda.device(experiment_args.device) == torch.cuda.device(model.device):
         model.to(experiment_args.device)
     model.eval()
 
