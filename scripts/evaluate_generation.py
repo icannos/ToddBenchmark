@@ -104,7 +104,7 @@ if __name__ == "__main__":
         num_beam=experiment_args.num_return_sequences,
         reference_vocab_distribution=ref_probs.to(model.device),
     )
-        for t in [0.5, 1, 2, 5]
+        for t in [0.5, 1, 2, 5, 10, 20]
         for a in [0.05, 0.1, 0.5, 2, 3]
     ])
 
@@ -116,7 +116,7 @@ if __name__ == "__main__":
             num_return_sequences=experiment_args.num_return_sequences,
             num_beam=experiment_args.num_return_sequences,
         )
-        for t in [0.5, 1,  2, 5]
+        for t in [0.5, 1,  2, 5, 10, 20]
         for a in [0.05, 0.1, 0.5, 1, 2, 3]
     ])
 
