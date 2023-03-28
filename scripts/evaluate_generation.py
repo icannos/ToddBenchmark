@@ -60,7 +60,7 @@ if __name__ == "__main__":
     # Load model
     experiment_args = config["experiment_args"]
     model = config["model"]
-    if model.device != torch.cuda.device(experiment_args.device):
+    if not model.kwargs.get("load_in_8_bit", None):
         model.to(experiment_args.device)
     model.eval()
 
