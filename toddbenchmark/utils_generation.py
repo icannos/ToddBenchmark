@@ -118,6 +118,7 @@ def prepare_detectors(
             for detector in detectors:
                 if isinstance(detector, QueryBasedScorer):
                     # tmp bug fix
+                    print(inputs["input_ids"])
                     print(output.sequences)
                     print(tokenizer.pad_token_id)
                     print(tokenizer.batch_decode(output.sequences, skip_special_tokens=True, clean_up_tokenization_spaces=True))
