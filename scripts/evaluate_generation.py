@@ -62,8 +62,8 @@ if __name__ == "__main__":
     model = config["model"]
 
     print(experiment_args.device, model.device)
-    if not torch.cuda.device(experiment_args.device) == torch.cuda.device(model.device):
-        model.to(experiment_args.device)
+    # if not torch.cuda.device(experiment_args.device) == torch.cuda.device(model.device):
+    #    model.to(experiment_args.device)
     model.eval()
 
     tokenizer = config["tokenizer"]
