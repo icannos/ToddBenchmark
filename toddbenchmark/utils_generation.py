@@ -119,6 +119,7 @@ def prepare_detectors(
                 if isinstance(detector, QueryBasedScorer):
                     # tmp bug fix
                     print(output.sequences)
+                    print(tokenizer.pad_token_id)
                     print(tokenizer.batch_decode(output.sequences, skip_special_tokens=True, clean_up_tokenization_spaces=True))
 
                     sentence_pairs = list(zip(batch["source"],
