@@ -99,7 +99,7 @@ if __name__ == "__main__":
     detectors.extend([SequenceRenyiNegDataFittedScorer(
         alpha=a,
         temperature=t,
-        mode="input",  # mode="token",  # input, output, token
+        mode="output",  # mode="token",  # input, output, token
         num_return_sequences=experiment_args.num_return_sequences,
         num_beam=experiment_args.num_return_sequences,
         reference_vocab_distribution=ref_probs.to(model.device),
