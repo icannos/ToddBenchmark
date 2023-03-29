@@ -61,9 +61,8 @@ if __name__ == "__main__":
     experiment_args = config["experiment_args"]
     model = config["model"]
 
-    print(experiment_args.device, model.device)
-    # if not torch.cuda.device(experiment_args.device) == torch.cuda.device(model.device):
-    #    model.to(experiment_args.device)
+    if model.device == torch.device("cpu") and (experiment_args.device != "cpu" or experiment_args.device != torch.device("cpu")):
+        model.to(experiment_args.device)
     model.eval()
 
     tokenizer = config["tokenizer"]
@@ -92,14 +91,14 @@ if __name__ == "__main__":
     )
 
     print("Fitting models")
-    ref_probs = fit_models(tokenizer, model, validation_loader)
+    ref_probs = fit_models(tokenizer, model, validation_loader, **vars(experiment_args))
 
     print("Preparing detectors")
     detectors:  List[ScorerType] = config["detectors"]
     detectors.extend([SequenceRenyiNegDataFittedScorer(
         alpha=a,
         temperature=t,
-        mode="output",  # mode="token",  # input, output, token
+        mode="token",  # mode="token",  # input, output, token
         num_return_sequences=experiment_args.num_return_sequences,
         num_beam=experiment_args.num_return_sequences,
         reference_vocab_distribution=ref_probs.to(model.device),
@@ -112,7 +111,7 @@ if __name__ == "__main__":
         SequenceRenyiNegScorer(
             alpha=a,
             temperature=t,
-            mode="input",  # mode="token",  # input, output, token
+            mode="token",  # mode="token",  # input, output, token
             num_return_sequences=experiment_args.num_return_sequences,
             num_beam=experiment_args.num_return_sequences,
         )
@@ -129,7 +128,7 @@ if __name__ == "__main__":
 
     # Fit the detectors on the behavior of the model on the (in) validation set
     print("Fitting detectors")
-    detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
+    detectors = prepare_detectors(detectors, model, validation_loader, tokenizer, **vars(experiment_args))
 
     print("Preparing detectors out - for classification based detectors")
     # For the classifier scorers, we need to fit them on the (out) validation set
@@ -141,7 +140,7 @@ if __name__ == "__main__":
         experiment_args.validation_size,
         experiment_args.test_size,
     )
-    detectors = prepare_detectors_out(detectors, model, validation_loader_out, tokenizer)
+    detectors = prepare_detectors_out(detectors, model, validation_loader_out, tokenizer, **vars(experiment_args))
     del validation_loader_out
 
     # ====================== Evaluate the detectors on the (in) validation set ====================== #

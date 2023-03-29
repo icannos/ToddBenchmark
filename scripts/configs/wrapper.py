@@ -23,7 +23,7 @@ class AutoModelForCausalLMWrapper:
         return AutoModelForCausalLM.from_pretrained(*args, **kwargs)
 
 
-class ExperimentArgs:
+class ExperimentArgs(object):
     def __init__(self,
                  batch_size: int = 8,
                  num_workers: int = 4,

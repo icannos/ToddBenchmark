@@ -17,6 +17,7 @@ def fit_models(
         tokenizer,
         model,
         loader: DataLoader,
+        **kwargs
 ):
 
     probs = []
@@ -24,12 +25,14 @@ def fit_models(
         inputs = tokenizer(
             batch["source"], padding=True, truncation=True, return_tensors="pt"
         ).to(model.device)
-        scores = model.generate(input_ids=inputs["input_ids"],
+        output = model.generate(input_ids=inputs["input_ids"],
                                 attention_mask=inputs["attention_mask"],
-                                max_length=200,
+                                max_new_tokens=kwargs.get("max_length", 32),
                                 return_dict_in_generate=True,
                                 output_scores=True,
-                                ).scores
+                                )
+        # torch.equal(output.sequences[:, :inputs.input_ids.shape[-1]], inputs.input_ids):
+        scores = output.scores
         probs.append(torch.cat(scores, dim=0).softmax(dim=1).mean(dim=0))
     probs = torch.stack(probs).mean(dim=0)
     return probs
@@ -52,7 +55,7 @@ def prepare_detectors_out(
             output = model.generate(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
-                max_length=kwargs.get("max_length", 200),
+                max_new_tokens=kwargs.get("max_length", 32),
                 num_beams=kwargs.get("num_beams", 4),
                 num_return_sequences=kwargs.get("num_return_sequences", 4),
                 early_stopping=True,
@@ -103,7 +106,7 @@ def prepare_detectors(
             output = model.generate(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
-                max_length=kwargs.get("max_length", 200),
+                max_new_tokens=kwargs.get("max_length", 32),
                 num_beams=kwargs.get("num_beams", 4),
                 num_return_sequences=kwargs.get("num_return_sequences", 4),
                 early_stopping=True,
@@ -196,7 +199,7 @@ def evaluate_dataloader(
             output = model.generate(
                 input_ids=inputs["input_ids"],
                 attention_mask=inputs["attention_mask"],
-                max_length=max_length,
+                max_new_tokens=max_length,
                 num_beams=num_beams,
                 num_return_sequences=num_return_sequences,
                 num_beam_groups=1,
