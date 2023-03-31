@@ -2,6 +2,8 @@ from toddbenchmark.generation_datasets_configs import TRANSLATION_DATASETS
 from toddbenchmark.generation_datasets import prep_model
 
 
+# prep_model("facebook/wmt19-de-en")
+prep_model("facebook/wmt19-de-en")
 print("Available Translation datasets configs:")
 for k, v in TRANSLATION_DATASETS.items():
     print(k)

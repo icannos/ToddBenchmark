@@ -31,6 +31,10 @@ TRANSLATION_DATASETS["tatoeba_mt_deu_eng"] = BASE_CONFIG | {
     "dataset_config": "deu-eng",
 }
 
+TRANSLATION_DATASETS["tatoeba_mt_por_eng"] = BASE_CONFIG | {
+    "dataset_name": "Helsinki-NLP/tatoeba_mt",
+    "dataset_config": "por-eng",
+}
 # Helsinki-NLP TaToeba, Spanish English
 TRANSLATION_DATASETS["tatoeba_mt_spa_eng"] = BASE_CONFIG | {
     "dataset_name": "Helsinki-NLP/tatoeba_mt",

@@ -15,6 +15,8 @@ from Todd import (
     CosineProjectionScorer,
     InformationProjection,
     DataDepthScorer,
+    SoftMaxEnergyScorer,
+    SequenceMSPScorer,
 )
 from toddbenchmark.generation_datasets import prep_model
 from toddbenchmark.generation_datasets_configs import (
@@ -196,17 +198,23 @@ if __name__ == "__main__":
         for n in [2, 4, 6, 7]
     ]
 
-    InformationProjection(
-        alpha=0.5,
-        temperature=1,
-        use_soft_projection=True,
-        n_neighbors=8,
-        pad_token_id=tokenizer.pad_token_id,
-        num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-            "num_return_sequences"
-        ],
-        num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-        mode="output",
+    detectors.extend(
+        [
+            InformationProjection(
+                alpha=0.5,
+                temperature=1,
+                use_soft_projection=True,
+                n_neighbors=8,
+                pad_token_id=tokenizer.pad_token_id,
+                num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                    "num_return_sequences"
+                ],
+                num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+                mode="output",
+            ),
+            SoftMaxEnergyScorer(mode="input"),
+            SequenceMSPScorer(mode="input"),
+        ]
     )
 
     detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])

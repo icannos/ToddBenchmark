@@ -2,10 +2,11 @@ from collections import defaultdict, Counter
 from typing import List, Dict, Any, Optional, Callable
 from math import log
 import torch
-from datasets import load_dataset, DatasetDict
+from datasets import load_dataset, DatasetDict, Dataset
 from torch.utils.data import DataLoader
 import evaluate
 from transformers import GenerationConfig
+
 
 from Todd import ScorerType
 
@@ -192,6 +193,7 @@ def evaluate_dataloader(
             for k, v in per_gen_score.items():
                 global_perfs_scores[k].append(v)
             global_perfs_scores["ref"].append(batch["target"][sample_id])
+            global_perfs_scores["source"].append(batch["source"][sample_id])
 
         for k, v in global_perfs_scores.items():
             if k not in records:
@@ -213,13 +215,23 @@ def try_load_dataset_config(dataset_name: str, dataset_config: str) -> DatasetDi
 
     # Try to load the dataset from the datasets library with one config or its permutation
     try:
-        dataset = load_dataset(dataset_name, dataset_config)
+        dataset = load_dataset(
+            dataset_name,
+            dataset_config,
+            # download_mode="force_redownload",
+            verification_mode="no_checks",
+        )
     except Exception:
         dataset_config = tgt + "-" + src
         src, tgt = dataset_config.split("-")
 
         try:
-            dataset = load_dataset(dataset_name, dataset_config)
+            dataset = load_dataset(
+                dataset_name,
+                dataset_config,
+                # download_mode="force_redownload",
+                verification_mode="no_checks",
+            )
         except Exception:
             raise ValueError(
                 "Invalid dataset config. None of the following configs are valid: "

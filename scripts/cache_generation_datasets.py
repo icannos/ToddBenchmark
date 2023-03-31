@@ -7,6 +7,7 @@ if __name__ == "__main__":
     model, tokenizer = prep_model("t5-small")
 
     print("Available datasets configs:")
+
     for k, v in DATASETS_CONFIGS.items():
         try:
             _, _, _ = prep_dataset(
