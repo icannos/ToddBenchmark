@@ -505,6 +505,107 @@ def load_sciq(dataset_name, dataset_config):
     return dataset
 
 
+def load_trivia_qa(dataset_name, dataset_config="closed_book"):
+
+    dataset = load_dataset("trivia_qa", "rc", download_mode="force_redownload")
+
+    if dataset_config == "closed_book":
+        train = [
+            (sample["question"], sample["answer"]["value"])
+            for sample in dataset["train"]
+        ]
+        validation = [
+            (sample["question"], sample["answer"]["value"])
+            for sample in dataset["validation"]
+        ]
+        test = [
+            (sample["question"], sample["answer"]["value"])
+            for sample in dataset["test"]
+        ]
+
+        return {"train": train, "validation": validation, "test": test}
+
+    elif dataset_config == "open_book_answerable":
+
+        def mk_input(x):
+            context = x["search_results"]["search_context"][0].replace("\n", " ")
+            txt = f"Context: {context} ; Question: {x['question']}"
+            return txt
+
+        def mk_target(x):
+            return x["answer"]["value"]
+
+        train = [(mk_input(sample), mk_target(sample)) for sample in dataset["train"]]
+        validation = [
+            (mk_input(sample), mk_target(sample)) for sample in dataset["validation"]
+        ]
+        test = [(mk_input(sample), mk_target(sample)) for sample in dataset["test"]]
+
+        return {"train": train, "validation": validation, "test": test}
+
+    elif dataset_config == "open_book_unanswerable":
+
+        all_questions = []
+        for split in dataset:
+            all_questions.extend([sample["question"] for sample in dataset[split]])
+
+        def mk_input(x):
+            # select a random question
+            random_question = random.choice(all_questions)
+            context = x["search_results"]["search_context"][0].replace("\n", " ")
+            txt = f"Context: {context} ; Question: {random_question}"
+            return txt
+
+        def mk_target(x):
+            return "None"
+
+        train = [(mk_input(sample), mk_target(sample)) for sample in dataset["train"]]
+        validation = [
+            (mk_input(sample), mk_target(sample)) for sample in dataset["validation"]
+        ]
+        test = [(mk_input(sample), mk_target(sample)) for sample in dataset["test"]]
+
+        return {"train": train, "validation": validation, "test": test}
+
+    else:
+        raise ValueError(
+            f"Invalid dataset config: {dataset_config}, should be open_book_answerable, open_book_unanswerable or closed_book"
+        )
+
+
+def load_coqa(dataset_name, dataset_config="answerable"):
+    dataset = load_dataset("coqa", download_mode="force_redownload")
+
+    _dataset = {}
+    for split in dataset:
+        _dataset[split] = []
+        for sample in dataset[split]:
+            for question, answer in zip(
+                sample["questions"], sample["input_text"]["answers"]
+            ):
+                _dataset[split].append((sample["story"], question, answer))
+
+    def mk_input(x):
+        return f"Context: {x[0]} ; Question: {x[1]}"
+
+    def mk_target(x):
+        return x[2]
+
+    if dataset_config == "answerable":
+        dataset = {
+            split: [(mk_input(x), mk_target(x)) for x in _dataset[split]]
+            for split in _dataset
+        }
+
+        return {
+            "train": dataset["train"][:3000],
+            "validation": dataset["train"][3000:],
+            "test": dataset["validation"],
+        }
+
+    return dataset
+
+
 def load_tweetqa(dataset_name, dataset_config):
     dataset = load_dataset(
         "tweet_qa",
@@ -658,6 +759,10 @@ def load_squadv2(dataset_name, dataset_config):
     return dataset
 
 
+def load_race(dataset_name, dataset_config):
+    pass
+
+
 def load_cuad(dataset_name, dataset_config):
     dataset = load_dataset("cuad")
 
@@ -795,6 +900,12 @@ def prep_dataset(
             dataset_config,
         )
 
+    elif dataset_name == "coqa":
+        dataset = load_coqa(dataset_name, dataset_config)
+
+    elif dataset_name == "trivia_qa":
+        dataset = load_trivia_qa(dataset_name, dataset_config)
+
     elif dataset_name == "openbookqa":
         dataset = load_openbookqa_dataset(
             dataset_name,
@@ -862,10 +973,14 @@ def prep_model(model_name):
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         tokenizer.truncation_side = "left"
         tokenizer.model_max_length = 50
-        model = AutoModelForCausalLM.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, device_map="auto", load_in_8bit=True
+        )
     else:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_name, device_map="auto", load_in_8bit=True
+        )
 
     return model, tokenizer
 

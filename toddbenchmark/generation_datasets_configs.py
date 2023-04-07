@@ -195,6 +195,28 @@ DATASETS_CONFIGS["tweetqa_unanswerable"] = BASE_CONFIG | {
     "dataset_config": "unanswerable",
 }
 
+
+DATASETS_CONFIGS["trivia_qa_answerable"] = BASE_CONFIG | {
+    "dataset_name": "trivia_qa",
+    "dataset_config": "open_book_answerable",
+}
+
+
+DATASETS_CONFIGS["trivia_qa_unanswerable"] = BASE_CONFIG | {
+    "dataset_name": "trivia_qa",
+    "dataset_config": "open_book_unanswerable",
+}
+
+DATASETS_CONFIGS["trivia_qa_closedbook"] = BASE_CONFIG | {
+    "dataset_name": "trivia_qa",
+    "dataset_config": "closed_book",
+}
+
+DATASETS_CONFIGS["coqa_answerable"] = BASE_CONFIG | {
+    "dataset_name": "coqa",
+    "dataset_config": "answerable",
+}
+
 DATASETS_CONFIGS["quartz_answerable"] = BASE_CONFIG | {
     "dataset_name": "quartz",
     "dataset_config": "answerable",
