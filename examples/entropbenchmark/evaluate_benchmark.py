@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
-    model.to(args.device)
+    # model.to(args.device)
 
     gen_config = GenerationConfig(**GENERATION_CONFIGS[args.generation_config])
 
@@ -195,23 +195,26 @@ if __name__ == "__main__":
         )
         for t in [0.1, 0.5, 1, 1.5, 2, 3, 5, 10, 15, 20]
         for a in [0.01, 0.05, 0.1, 0.5, 0.9, 1.1, 1.5, 2, 3]
-        for n in [2, 4, 6, 7]
+        # step of 2, until num_return_sequences
+        for n in range(
+            2, GENERATION_CONFIGS[args.generation_config]["num_return_sequences"], 2
+        )
     ]
 
     detectors.extend(
         [
-            InformationProjection(
-                alpha=0.5,
-                temperature=1,
-                use_soft_projection=True,
-                n_neighbors=8,
-                pad_token_id=tokenizer.pad_token_id,
-                num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-                    "num_return_sequences"
-                ],
-                num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-                mode="output",
-            ),
+            # InformationProjection(
+            #     alpha=0.5,
+            #     temperature=1,
+            #     use_soft_projection=True,
+            #     n_neighbors=8,
+            #     pad_token_id=tokenizer.pad_token_id,
+            #     num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+            #         "num_return_sequences"
+            #     ],
+            #     num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            #     mode="output",
+            # ),
             SoftMaxEnergyScorer(mode="input"),
             SequenceMSPScorer(mode="input"),
         ]
