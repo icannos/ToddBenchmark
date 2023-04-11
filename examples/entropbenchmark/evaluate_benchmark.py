@@ -58,7 +58,7 @@ def parse_args():
         "--out_configs",
         type=str,
         nargs="+",
-        default=None,
+        default=[],
         choices=config_choices,
     )
 
@@ -150,7 +150,7 @@ if __name__ == "__main__":
 
     # Load model and tokenizer
     model, tokenizer = prep_model(args.model_name)
-    # model.to(args.device)
+    model.to(args.device)
 
     gen_config = GenerationConfig(**GENERATION_CONFIGS[args.generation_config])
 
@@ -201,24 +201,34 @@ if __name__ == "__main__":
         )
     ]
 
-    detectors.extend(
-        [
-            # InformationProjection(
-            #     alpha=0.5,
-            #     temperature=1,
-            #     use_soft_projection=True,
-            #     n_neighbors=8,
-            #     pad_token_id=tokenizer.pad_token_id,
-            #     num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-            #         "num_return_sequences"
-            #     ],
-            #     num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-            #     mode="output",
-            # ),
-            SoftMaxEnergyScorer(mode="input"),
-            SequenceMSPScorer(mode="input"),
-        ]
-    )
+    detectors += [
+        # InformationProjection(
+        #     alpha=0.5,
+        #     temperature=1,
+        #     use_soft_projection=True,
+        #     n_neighbors=8,
+        #     pad_token_id=tokenizer.pad_token_id,
+        #     num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+        #         "num_return_sequences"
+        #     ],
+        #     num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+        #     mode="output",
+        # ),
+        SoftMaxEnergyScorer(
+            mode="token",
+            num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+        ),
+        SequenceMSPScorer(
+            mode="token",
+            num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+        ),
+    ]
 
     detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])
 
