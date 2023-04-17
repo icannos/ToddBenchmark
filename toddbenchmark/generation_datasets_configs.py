@@ -140,6 +140,49 @@ TRANSLATION_DATASETS["tatoeba_mt_urd_eng"] = BASE_CONFIG | {
     "dataset_config": "urd-eng",
 }
 
+
+TRANSLATION_DATASETS["emea_spa_eng"] = BASE_CONFIG | {
+    "dataset_name": "qanastek/EMEA-V3",
+    "dataset_config": "es-en",
+}
+
+TRANSLATION_DATASETS["emea_por_eng"] = BASE_CONFIG | {
+    "dataset_name": "qanastek/EMEA-V3",
+    "dataset_config": "pt-en",
+}
+
+TRANSLATION_DATASETS["emea_nld_eng"] = BASE_CONFIG | {
+    "dataset_name": "qanastek/EMEA-V3",
+    "dataset_config": "nl-en",
+}
+
+
+TRANSLATION_DATASETS["emea_fra_eng"] = BASE_CONFIG | {
+    "dataset_name": "qanastek/EMEA-V3",
+    "dataset_config": "fr-en",
+}
+
+
+TRANSLATION_DATASETS["emea_ita_eng"] = BASE_CONFIG | {
+    "dataset_name": "qanastek/EMEA-V3",
+    "dataset_config": "it-en",
+}
+
+TRANSLATION_DATASETS["emea_deu_eng"] = BASE_CONFIG | {
+    "dataset_name": "qanastek/EMEA-V3",
+    "dataset_config": "de-en",
+}
+
+TRANSLATION_DATASETS["europarl_spa_eng"] = BASE_CONFIG | {
+    "dataset_name": "europarl_bilingual",
+    "dataset_config": "es-en",
+}
+
+TRANSLATION_DATASETS["europarl_deu_eng"] = BASE_CONFIG | {
+    "dataset_name": "europarl_bilingual",
+    "dataset_config": "es-en",
+}
+
 DATASETS_CONFIGS = DATASETS_CONFIGS | TRANSLATION_DATASETS
 
 ###### Question Answering ######
@@ -196,21 +239,21 @@ DATASETS_CONFIGS["tweetqa_unanswerable"] = BASE_CONFIG | {
 }
 
 
-DATASETS_CONFIGS["trivia_qa_answerable"] = BASE_CONFIG | {
-    "dataset_name": "trivia_qa",
-    "dataset_config": "open_book_answerable",
-}
-
-
-DATASETS_CONFIGS["trivia_qa_unanswerable"] = BASE_CONFIG | {
-    "dataset_name": "trivia_qa",
-    "dataset_config": "open_book_unanswerable",
-}
-
-DATASETS_CONFIGS["trivia_qa_closedbook"] = BASE_CONFIG | {
-    "dataset_name": "trivia_qa",
-    "dataset_config": "closed_book",
-}
+# DATASETS_CONFIGS["triviaqa_answerable"] = BASE_CONFIG | {
+#     "dataset_name": "trivia_qa",
+#     "dataset_config": "open_book_answerable",
+# }
+#
+#
+# DATASETS_CONFIGS["triviaqa_unanswerable"] = BASE_CONFIG | {
+#     "dataset_name": "trivia_qa",
+#     "dataset_config": "open_book_unanswerable",
+# }
+#
+# DATASETS_CONFIGS["triviaqa_closedbook"] = BASE_CONFIG | {
+#     "dataset_name": "trivia_qa",
+#     "dataset_config": "closed_book",
+# }
 
 DATASETS_CONFIGS["coqa_answerable"] = BASE_CONFIG | {
     "dataset_name": "coqa",

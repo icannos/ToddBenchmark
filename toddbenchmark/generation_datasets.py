@@ -977,10 +977,9 @@ def prep_model(model_name):
             model_name, device_map="auto", load_in_8bit=True
         )
     else:
+
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_name, device_map="auto", load_in_8bit=True
-        )
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     return model, tokenizer
 

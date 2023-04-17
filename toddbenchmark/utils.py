@@ -1,4 +1,5 @@
 import json
+import pickle
 
 
 class RoundingFloat(float):
@@ -18,6 +19,11 @@ def dump_json(records, path, append=False):
 
     with open(path, "w") as f:
         json.dump(records, f)
+
+
+def dump_pickle(records, path, append=False):
+    with open(path, "wb") as f:
+        pickle.dump(records, f)
 
 
 def sanitize_model_name(model_name: str) -> str:
