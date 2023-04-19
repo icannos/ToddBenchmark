@@ -1,12 +1,11 @@
 from collections import defaultdict, Counter
-from typing import List, Dict, Any, Optional, Callable
 from math import log
-import torch
-from datasets import load_dataset, DatasetDict, Dataset
-from torch.utils.data import DataLoader
-import evaluate
-from transformers import GenerationConfig
+from typing import List, Dict, Optional, Callable
 
+import torch
+from datasets import load_dataset, DatasetDict
+from torch.utils.data import DataLoader
+from transformers import GenerationConfig
 
 from Todd import ScorerType
 
@@ -140,72 +139,71 @@ def evaluate_dataloader(
     }
 
     records["likelihood"] = []
-
-    for batch_idx, batch in enumerate(data_loader):
-
-        inputs = tokenizer(
-            batch["source"], padding=True, truncation=True, return_tensors="pt"
-        )
-        labels = tokenizer(
-            batch["target"], padding=True, truncation=True, return_tensors="pt"
-        )
-
-        inputs = {k: v.to(model.device) for k, v in inputs.items()}
-
-        output = model.generate(
-            input_ids=inputs["input_ids"],
-            attention_mask=inputs["attention_mask"],
-            generation_config=generation_config,
-        )
-
-        # Should be a dictionary with keys ood scores,
-        # each containing a numpy array of shape (batch_size, num_return_sequences))
-
-        ood_scores = evaluate_batch(output, detectors)
-        ood_scores = {
-            k: (scores.tolist() if not isinstance(scores, list) else scores)
-            for k, scores in ood_scores.items()
-        }
-
-        for k, scores in ood_scores.items():
-            records[k].extend(scores)
-
-        # A list of list ie each returned sequence for each batch
-        generated_sequences = output.sequences.view(
-            output.sequences.shape[0] // num_return_sequences,
-            num_return_sequences,
-            -1,
-        )
-
-        global_perfs_scores = defaultdict(list)
-        for sample_id, seqs in enumerate(generated_sequences):
-            decoded_sequences = tokenizer.batch_decode(
-                seqs,
-                skip_special_tokens=True,
+    with torch.no_grad():
+        for batch_idx, batch in enumerate(data_loader):
+            inputs = tokenizer(
+                batch["source"], padding=True, truncation=True, return_tensors="pt"
+            )
+            labels = tokenizer(
+                batch["target"], padding=True, truncation=True, return_tensors="pt"
             )
 
-            per_gen_score = defaultdict(list)
-            for hyp in decoded_sequences:
-                for k, v in metric_eval(hyp, batch["target"][sample_id]).items():
-                    per_gen_score[k].append(v)
-                per_gen_score["hyp"].append(hyp)
+            inputs = {k: v.to(model.device) for k, v in inputs.items()}
 
-            for k, v in per_gen_score.items():
-                global_perfs_scores[k].append(v)
-            global_perfs_scores["ref"].append(batch["target"][sample_id])
-            global_perfs_scores["source"].append(batch["source"][sample_id])
+            output = model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                generation_config=generation_config,
+            )
 
-        for k, v in global_perfs_scores.items():
-            if k not in records:
-                records[k] = []
-            records[k].extend(v)
+            # Should be a dictionary with keys ood scores,
+            # each containing a numpy array of shape (batch_size, num_return_sequences))
 
-        sequences_scores = output.sequences_scores.view(
-            output.sequences_scores.shape[0] // num_return_sequences,
-            num_return_sequences,
-        ).tolist()
+            ood_scores = evaluate_batch(output, detectors)
+            ood_scores = {
+                k: (scores.tolist() if not isinstance(scores, list) else scores)
+                for k, scores in ood_scores.items()
+            }
 
-        records["likelihood"].extend(sequences_scores)
+            for k, scores in ood_scores.items():
+                records[k].extend(scores)
+
+            # A list of list ie each returned sequence for each batch
+            generated_sequences = output.sequences.view(
+                output.sequences.shape[0] // num_return_sequences,
+                num_return_sequences,
+                -1,
+            )
+
+            global_perfs_scores = defaultdict(list)
+            for sample_id, seqs in enumerate(generated_sequences):
+                decoded_sequences = tokenizer.batch_decode(
+                    seqs,
+                    skip_special_tokens=True,
+                )
+
+                per_gen_score = defaultdict(list)
+                for hyp in decoded_sequences:
+                    for k, v in metric_eval(hyp, batch["target"][sample_id]).items():
+                        per_gen_score[k].append(v)
+                    per_gen_score["hyp"].append(hyp)
+
+                for k, v in per_gen_score.items():
+                    global_perfs_scores[k].append(v)
+                global_perfs_scores["ref"].append(batch["target"][sample_id])
+                global_perfs_scores["source"].append(batch["source"][sample_id])
+
+            for k, v in global_perfs_scores.items():
+                if k not in records:
+                    records[k] = []
+                records[k].extend(v)
+
+            sequences_scores = output.sequences_scores.view(
+                output.sequences_scores.shape[0] // num_return_sequences,
+                num_return_sequences,
+            ).tolist()
+
+            records["likelihood"].extend(sequences_scores)
 
     return records
 

@@ -1007,9 +1007,7 @@ def prep_model(model_name, device="cuda"):
 
     elif "google/flan" in model_name:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSeq2SeqLM.from_pretrained(
-            model_name, load_in_8bit=True, device_map="auto"
-        )
+        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     else:
         tokenizer = AutoTokenizer.from_pretrained(model_name)

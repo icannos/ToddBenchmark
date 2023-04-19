@@ -31,6 +31,11 @@ from toddbenchmark.generation_datasets_configs import (
     load_requested_dataset,
 )
 
+from toddbenchmark.hallucinations_preprocessing import (
+    random_uppercase_word,
+    delete_random_char,
+)
+
 from toddbenchmark.utils_generation import (
     prepare_detectors,
     evaluate_dataloader,
@@ -112,6 +117,9 @@ def parse_args():
         default="",
         help="Instruction to use for generation.",
     )
+
+    parser.add_argument("--perturbation", type="str", default="None")
+
     return parser.parse_args()
 
 
@@ -153,6 +161,7 @@ if __name__ == "__main__":
         "instruction": args.instruction,
         "seed": args.seed,
         "output_dir": args.output_dir,
+        "perturbation": args.perturbation,
     }
 
     # Load model and tokenizer
@@ -267,6 +276,20 @@ def add_instruction_token(sample):
     return sample
 
 
+def apply_hallucination(sample):
+    sample["source"] = random_uppercase_word(delete_random_char(sample["source"]))
+    return sample
+
+
+def mk_update_input_fn():
+    if args.perturbation == "hallucination":
+        return lambda x: random_uppercase_word(
+            delete_random_char(add_instruction_token(x))
+        )
+    else:
+        return add_instruction_token
+
+
 # Load the reference set
 
 _, validation_loader, test_loader = load_requested_dataset(
@@ -276,7 +299,7 @@ _, validation_loader, test_loader = load_requested_dataset(
     0,
     args.validation_size,
     args.test_size,
-    update_input_fn=add_instruction_token,
+    update_input_fn=mk_update_input_fn(),
 )
 
 # Fit the detectors on the behavior of the model on the (in) validation set
