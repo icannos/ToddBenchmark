@@ -3,6 +3,7 @@ from typing import Tuple
 
 from datasets import load_dataset, Dataset
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
+import torch
 
 from .utils_generation import try_load_dataset_config
 
@@ -329,6 +330,17 @@ def load_multi_news_dataset(dataset_name, dataset_config):
 ## Question Answering Datasets
 
 
+def load_web_questions_dataset(dataset_name, dataset_config):
+    dataset = load_dataset("web_questions")
+
+    train = [(d["question"], d["answers"][0]) for d in dataset["train"]]
+
+    val = train[:1000]
+    test = [(d["question"], d["answers"][0]) for d in dataset["test"]]
+
+    return {"train": train, "validation": val, "test": test}
+
+
 def load_openbookqa_dataset(dataset_name, dataset_config):
     # dataset config: answerable, unanswerable
 
@@ -507,9 +519,10 @@ def load_sciq(dataset_name, dataset_config):
 
 def load_trivia_qa(dataset_name, dataset_config="closed_book"):
 
-    dataset = load_dataset("trivia_qa", "rc", download_mode="force_redownload")
-
     if dataset_config == "closed_book":
+        dataset = load_dataset(
+            "trivia_qa", "rc.nocontext", download_mode="force_redownload"
+        )
         train = [
             (sample["question"], sample["answer"]["value"])
             for sample in dataset["train"]
@@ -526,6 +539,7 @@ def load_trivia_qa(dataset_name, dataset_config="closed_book"):
         return {"train": train, "validation": validation, "test": test}
 
     elif dataset_config == "open_book_answerable":
+        dataset = load_dataset("trivia_qa", "rc", download_mode="force_redownload")
 
         def mk_input(x):
             context = x["search_results"]["search_context"][0].replace("\n", " ")
@@ -543,29 +557,29 @@ def load_trivia_qa(dataset_name, dataset_config="closed_book"):
 
         return {"train": train, "validation": validation, "test": test}
 
-    elif dataset_config == "open_book_unanswerable":
+        # elif dataset_config == "open_book_unanswerable":
+        #
+        #     all_questions = []
+        #     for split in dataset:
+        #         all_questions.extend([sample["question"] for sample in dataset[split]])
+        #
+        #     def mk_input(x):
+        #         # select a random question
+        #         random_question = random.choice(all_questions)
+        #         context = x["search_results"]["search_context"][0].replace("\n", " ")
+        #         txt = f"Context: {context} ; Question: {random_question}"
+        #         return txt
 
-        all_questions = []
-        for split in dataset:
-            all_questions.extend([sample["question"] for sample in dataset[split]])
+        # def mk_target(x):
+        #     return "None"
 
-        def mk_input(x):
-            # select a random question
-            random_question = random.choice(all_questions)
-            context = x["search_results"]["search_context"][0].replace("\n", " ")
-            txt = f"Context: {context} ; Question: {random_question}"
-            return txt
-
-        def mk_target(x):
-            return "None"
-
-        train = [(mk_input(sample), mk_target(sample)) for sample in dataset["train"]]
-        validation = [
-            (mk_input(sample), mk_target(sample)) for sample in dataset["validation"]
-        ]
-        test = [(mk_input(sample), mk_target(sample)) for sample in dataset["test"]]
-
-        return {"train": train, "validation": validation, "test": test}
+        # train = [(mk_input(sample), mk_target(sample)) for sample in dataset["train"]]
+        # validation = [
+        #     (mk_input(sample), mk_target(sample)) for sample in dataset["validation"]
+        # ]
+        # test = [(mk_input(sample), mk_target(sample)) for sample in dataset["test"]]
+        #
+        # return {"train": train, "validation": validation, "test": test}
 
     else:
         raise ValueError(
@@ -888,6 +902,9 @@ def prep_dataset(
             dataset_config,
         )
 
+    elif dataset_name == "web_questions":
+        dataset = load_web_questions_dataset(dataset_name, dataset_config)
+
     elif dataset_name == "europarl_bilingual":
         dataset = load_europarl_dataset(
             dataset_name,
@@ -968,7 +985,7 @@ def prep_dataset(
     return train, val, test
 
 
-def prep_model(model_name):
+def prep_model(model_name, device="cuda"):
     if model_name == "microsoft/DialoGPT-medium" or model_name == "tosin/dialogpt_mwoz":
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         tokenizer.truncation_side = "left"
@@ -976,10 +993,28 @@ def prep_model(model_name):
         model = AutoModelForCausalLM.from_pretrained(
             model_name, device_map="auto", load_in_8bit=True
         )
-    else:
 
+    if model_name == "nomic-ai/gpt4all-j":
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForCausalLM.from_pretrained(
+            model_name, device_map="auto", load_in_8bit=True
+        )
+        added_tokens = tokenizer.add_special_tokens(
+            {"bos_token": "<s>", "eos_token": "</s>", "pad_token": "<pad>"}
+        )
+        if added_tokens > 0:
+            model.resize_token_embeddings(len(tokenizer))
+
+    elif "google/flan" in model_name:
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_name, load_in_8bit=True, device_map="auto"
+        )
+
+    else:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
+        model = model.to(device)
 
     return model, tokenizer
 

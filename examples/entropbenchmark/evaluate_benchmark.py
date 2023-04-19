@@ -156,8 +156,7 @@ if __name__ == "__main__":
     }
 
     # Load model and tokenizer
-    model, tokenizer = prep_model(args.model_name)
-    model.to(args.device)
+    model, tokenizer = prep_model(args.model_name, args.device)
 
     gen_config = GenerationConfig(**GENERATION_CONFIGS[args.generation_config])
 
