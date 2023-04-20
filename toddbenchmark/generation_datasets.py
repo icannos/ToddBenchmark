@@ -1006,7 +1006,9 @@ def prep_model(model_name, device="cuda"):
             model.resize_token_embeddings(len(tokenizer))
 
     elif "google/flan" in model_name:
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, device_map="auto", torch_dtype=torch.float16
+        )
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     else:

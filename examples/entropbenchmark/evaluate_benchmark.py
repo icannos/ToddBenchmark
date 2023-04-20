@@ -118,7 +118,7 @@ def parse_args():
         help="Instruction to use for generation.",
     )
 
-    parser.add_argument("--perturbation", type="str", default="None")
+    parser.add_argument("--perturbation", type=str, default="None")
 
     return parser.parse_args()
 
@@ -171,40 +171,33 @@ if __name__ == "__main__":
 
 TEMPERATURES = [
     0.1,
-    0.25,
     0.5,
     1,
-    1.25,
     1.5,
     2,
-    2.25,
     2.5,
     3,
-    3.25,
-    3.5,
     4,
-    4.25,
-    4.5,
     5,
 ]
 
-ALPHAS = [round(a, 3) if a != 0 else 0.05 for a in np.arange(0, 2, 0.1) if a != 1] + [5]
+ALPHAS = [0.01, 0.1, 0.5, 0.9, 1.1, 1.5, 2] + [5]
 
-detectors: List[ScorerType] = [
-    SequenceFisherRaoScorer(
-        alpha=a,
-        temperature=t,
-        mode="token",  # input, output, token
-        num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-            "num_return_sequences"
-        ],
-        num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    )
-    for t in TEMPERATURES
-    for a in ALPHAS
-]
+# detectors: List[ScorerType] = [
+#     SequenceFisherRaoScorer(
+#         alpha=a,
+#         temperature=t,
+#         mode="token",  # input, output, token
+#         num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+#             "num_return_sequences"
+#         ],
+#         num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+#     )
+#     for t in TEMPERATURES
+#     for a in ALPHAS
+# ]
 
-detectors += [
+detectors = [
     SequenceRenyiNegScorer(
         alpha=a,
         temperature=t,
@@ -268,7 +261,7 @@ detectors += [
     ),
 ]
 
-detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])
+# detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])
 
 
 def add_instruction_token(sample):
