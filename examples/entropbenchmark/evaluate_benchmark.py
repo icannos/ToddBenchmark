@@ -276,9 +276,7 @@ def apply_hallucination(sample):
 
 def mk_update_input_fn():
     if args.perturbation == "hallucination":
-        return lambda x: random_uppercase_word(
-            delete_random_char(add_instruction_token(x))
-        )
+        return apply_hallucination
     else:
         return add_instruction_token
 
