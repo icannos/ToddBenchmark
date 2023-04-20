@@ -520,9 +520,7 @@ def load_sciq(dataset_name, dataset_config):
 def load_trivia_qa(dataset_name, dataset_config="closed_book"):
 
     if dataset_config == "closed_book":
-        dataset = load_dataset(
-            "trivia_qa", "rc.nocontext", download_mode="force_redownload"
-        )
+        dataset = load_dataset("trivia_qa", "rc.nocontext")
         train = [
             (sample["question"], sample["answer"]["value"])
             for sample in dataset["train"]
@@ -539,7 +537,7 @@ def load_trivia_qa(dataset_name, dataset_config="closed_book"):
         return {"train": train, "validation": validation, "test": test}
 
     elif dataset_config == "open_book_answerable":
-        dataset = load_dataset("trivia_qa", "rc", download_mode="force_redownload")
+        dataset = load_dataset("trivia_qa", "rc")
 
         def mk_input(x):
             context = x["search_results"]["search_context"][0].replace("\n", " ")
@@ -588,14 +586,14 @@ def load_trivia_qa(dataset_name, dataset_config="closed_book"):
 
 
 def load_coqa(dataset_name, dataset_config="answerable"):
-    dataset = load_dataset("coqa", download_mode="force_redownload")
+    dataset = load_dataset("coqa")
 
     _dataset = {}
     for split in dataset:
         _dataset[split] = []
         for sample in dataset[split]:
             for question, answer in zip(
-                sample["questions"], sample["input_text"]["answers"]
+                sample["questions"], sample["answers"]["input_text"]
             ):
                 _dataset[split].append((sample["story"], question, answer))
 
@@ -1007,7 +1005,7 @@ def prep_model(model_name, device="cuda"):
 
     elif "google/flan" in model_name:
         tokenizer = AutoTokenizer.from_pretrained(
-            model_name, device_map="auto", torch_dtype=torch.float16
+            model_name, device_map="auto", torch_dtype=torch.bfloat16
         )
         model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
