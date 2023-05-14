@@ -6,6 +6,7 @@ import torch
 from datasets import load_dataset, DatasetDict
 from torch.utils.data import DataLoader
 from transformers import GenerationConfig
+from tqdm import tqdm
 
 from Todd import ScorerType
 
@@ -34,9 +35,9 @@ def prepare_detectors(
         output = model.generate(
             input_ids=inputs["input_ids"],
             attention_mask=inputs["attention_mask"],
-            max_length=100,
-            num_beams=4,
-            num_return_sequences=4,
+            max_new_tokens=100,
+            num_beams=2,
+            num_return_sequences=2,
             early_stopping=True,
             return_dict_in_generate=True,
             output_scores=True,
@@ -140,73 +141,70 @@ def evaluate_dataloader(
 
     records["likelihood"] = []
     with torch.no_grad():
-        with torch.cuda.amp.autocast():
-            for batch_idx, batch in enumerate(data_loader):
-                inputs = tokenizer(
-                    batch["source"], padding=True, truncation=True, return_tensors="pt"
+        for batch_idx, batch in tqdm(enumerate(data_loader)):
+            inputs = tokenizer(
+                batch["source"], padding=True, truncation=True, return_tensors="pt"
+            )
+            labels = tokenizer(
+                batch["target"], padding=True, truncation=True, return_tensors="pt"
+            )
+
+            inputs = {k: v.to(model.device) for k, v in inputs.items()}
+
+            output = model.generate(
+                input_ids=inputs["input_ids"],
+                attention_mask=inputs["attention_mask"],
+                generation_config=generation_config,
+            )
+
+            # Should be a dictionary with keys ood scores,
+            # each containing a numpy array of shape (batch_size, num_return_sequences))
+
+            ood_scores = evaluate_batch(output, detectors)
+            ood_scores = {
+                k: (scores.tolist() if not isinstance(scores, list) else scores)
+                for k, scores in ood_scores.items()
+            }
+
+            for k, scores in ood_scores.items():
+                records[k].extend(scores)
+
+            # A list of list ie each returned sequence for each batch
+            generated_sequences = output.sequences.view(
+                output.sequences.shape[0] // num_return_sequences,
+                num_return_sequences,
+                -1,
+            )
+
+            global_perfs_scores = defaultdict(list)
+            for sample_id, seqs in enumerate(generated_sequences):
+                decoded_sequences = tokenizer.batch_decode(
+                    seqs,
+                    skip_special_tokens=True,
                 )
-                labels = tokenizer(
-                    batch["target"], padding=True, truncation=True, return_tensors="pt"
-                )
 
-                inputs = {k: v.to(model.device) for k, v in inputs.items()}
+                per_gen_score = defaultdict(list)
+                for hyp in decoded_sequences:
+                    for k, v in metric_eval(hyp, batch["target"][sample_id]).items():
+                        per_gen_score[k].append(v)
+                    per_gen_score["hyp"].append(hyp)
 
-                output = model.generate(
-                    input_ids=inputs["input_ids"],
-                    attention_mask=inputs["attention_mask"],
-                    generation_config=generation_config,
-                )
+                for k, v in per_gen_score.items():
+                    global_perfs_scores[k].append(v)
+                global_perfs_scores["ref"].append(batch["target"][sample_id])
+                global_perfs_scores["source"].append(batch["source"][sample_id])
 
-                # Should be a dictionary with keys ood scores,
-                # each containing a numpy array of shape (batch_size, num_return_sequences))
+            for k, v in global_perfs_scores.items():
+                if k not in records:
+                    records[k] = []
+                records[k].extend(v)
 
-                ood_scores = evaluate_batch(output, detectors)
-                ood_scores = {
-                    k: (scores.tolist() if not isinstance(scores, list) else scores)
-                    for k, scores in ood_scores.items()
-                }
+            sequences_scores = output.sequences_scores.view(
+                output.sequences_scores.shape[0] // num_return_sequences,
+                num_return_sequences,
+            ).tolist()
 
-                for k, scores in ood_scores.items():
-                    records[k].extend(scores)
-
-                # A list of list ie each returned sequence for each batch
-                generated_sequences = output.sequences.view(
-                    output.sequences.shape[0] // num_return_sequences,
-                    num_return_sequences,
-                    -1,
-                )
-
-                global_perfs_scores = defaultdict(list)
-                for sample_id, seqs in enumerate(generated_sequences):
-                    decoded_sequences = tokenizer.batch_decode(
-                        seqs,
-                        skip_special_tokens=True,
-                    )
-
-                    per_gen_score = defaultdict(list)
-                    for hyp in decoded_sequences:
-                        for k, v in metric_eval(
-                            hyp, batch["target"][sample_id]
-                        ).items():
-                            per_gen_score[k].append(v)
-                        per_gen_score["hyp"].append(hyp)
-
-                    for k, v in per_gen_score.items():
-                        global_perfs_scores[k].append(v)
-                    global_perfs_scores["ref"].append(batch["target"][sample_id])
-                    global_perfs_scores["source"].append(batch["source"][sample_id])
-
-                for k, v in global_perfs_scores.items():
-                    if k not in records:
-                        records[k] = []
-                    records[k].extend(v)
-
-                sequences_scores = output.sequences_scores.view(
-                    output.sequences_scores.shape[0] // num_return_sequences,
-                    num_return_sequences,
-                ).tolist()
-
-                records["likelihood"].extend(sequences_scores)
+            records["likelihood"].extend(sequences_scores)
 
     return records
 

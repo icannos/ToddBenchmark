@@ -281,6 +281,12 @@ DATASETS_CONFIGS["squad_v2_unanswerable"] = BASE_CONFIG | {
 }
 
 
+DATASETS_CONFIGS["natural_instructions"] = BASE_CONFIG | {
+    "dataset_name": "natural_instructions",
+    "dataset_config": "",
+}
+
+
 # DATASETS_CONFIGS["cuad_answerable"] = BASE_CONFIG | {
 #     "dataset_name": "cuad",
 #     "dataset_config": "answerable",

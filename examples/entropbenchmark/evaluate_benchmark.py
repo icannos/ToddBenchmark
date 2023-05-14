@@ -169,203 +169,158 @@ if __name__ == "__main__":
 
     gen_config = GenerationConfig(**GENERATION_CONFIGS[args.generation_config])
 
-TEMPERATURES = [
-    0.1,
-    0.5,
-    1,
-    1.5,
-    2,
-    2.5,
-    3,
-    4,
-    5,
-]
+    TEMPERATURES = [
+        0.1,
+        0.5,
+        1,
+        1.5,
+        2,
+        2.5,
+        3,
+        4,
+        5,
+    ]
 
-ALPHAS = [0.01, 0.1, 0.5, 0.9, 1.1, 1.5, 2] + [5]
+    ALPHAS = [0.01, 0.1, 0.5, 0.9, 1.1, 1.5, 2] + [5]
 
-# detectors: List[ScorerType] = [
-#     SequenceFisherRaoScorer(
-#         alpha=a,
-#         temperature=t,
-#         mode="token",  # input, output, token
-#         num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-#             "num_return_sequences"
-#         ],
-#         num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-#     )
-#     for t in TEMPERATURES
-#     for a in ALPHAS
-# ]
+    # detectors: List[ScorerType] = [
+    #     SequenceFisherRaoScorer(
+    #         alpha=a,
+    #         temperature=t,
+    #         mode="token",  # input, output, token
+    #         num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+    #             "num_return_sequences"
+    #         ],
+    #         num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+    #     )
+    #     for t in TEMPERATURES
+    #     for a in ALPHAS
+    # ]
 
-detectors = [
-    SequenceRenyiNegScorer(
-        alpha=a,
-        temperature=t,
-        mode="token",  # input, output, token
-        num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-            "num_return_sequences"
-        ],
-        num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    )
-    for t in TEMPERATURES
-    for a in ALPHAS
-]
+    detectors = [
+        SequenceRenyiNegScorer(
+            alpha=a,
+            temperature=t,
+            mode="output",  # input, output, token
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+            num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+        )
+        for t in TEMPERATURES
+        for a in ALPHAS
+    ]
 
-detectors += [
-    BeamRenyiInformationProjection(
-        alpha=a,
-        temperature=t,
-        use_soft_projection=True,
-        n_neighbors=n,
-        pad_token_id=tokenizer.pad_token_id,
-        num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-            "num_return_sequences"
-        ],
-        num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-        mode="output",
-    )
-    for t in TEMPERATURES
-    for a in ALPHAS
-    # step of 2, until num_return_sequences
-    for n in range(
-        2, GENERATION_CONFIGS[args.generation_config]["num_return_sequences"], 2
-    )
-]
+    detectors += [
+        BeamRenyiInformationProjection(
+            alpha=a,
+            temperature=t,
+            use_soft_projection=True,
+            n_neighbors=n,
+            pad_token_id=tokenizer.pad_token_id,
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+            num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            mode="output",
+        )
+        for t in TEMPERATURES
+        for a in ALPHAS
+        # step of 2, until num_return_sequences
+        for n in range(
+            2, GENERATION_CONFIGS[args.generation_config]["num_return_sequences"], 2
+        )
+    ]
 
-detectors += [
-    # InformationProjection(
-    #     alpha=0.5,
-    #     temperature=1,
-    #     use_soft_projection=True,
-    #     n_neighbors=8,
-    #     pad_token_id=tokenizer.pad_token_id,
-    #     num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-    #         "num_return_sequences"
-    #     ],
-    #     num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    #     mode="output",
-    # ),
-    SoftMaxEnergyScorer(
-        mode="input",
-        num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-        num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-            "num_return_sequences"
-        ],
-    ),
-    SequenceMSPScorer(
-        mode="input",
-        num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-        num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-            "num_return_sequences"
-        ],
-    ),
-]
+    detectors += [
+        # InformationProjection(
+        #     alpha=0.5,
+        #     temperature=1,
+        #     use_soft_projection=True,
+        #     n_neighbors=8,
+        #     pad_token_id=tokenizer.pad_token_id,
+        #     num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+        #         "num_return_sequences"
+        #     ],
+        #     num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+        #     mode="output",
+        # ),
+        SoftMaxEnergyScorer(
+            mode="output",
+            num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+        ),
+        SequenceMSPScorer(
+            mode="output",
+            num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+        ),
+    ]
+    # detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])
 
-# detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])
+    def add_instruction_token(sample):
+        sample["source"] = f"{args.instruction}{sample['source']}"
+        return sample
 
+    def apply_hallucination(sample):
+        sample["source"] = random_uppercase_word(delete_random_char(sample["source"]))
+        return sample
 
-def add_instruction_token(sample):
-    sample["source"] = f"{args.instruction}{sample['source']}"
-    return sample
+    def mk_update_input_fn():
+        if args.perturbation == "hallucination":
+            return apply_hallucination
+        else:
+            return add_instruction_token
 
+    # Load the reference set
 
-def apply_hallucination(sample):
-    sample["source"] = random_uppercase_word(delete_random_char(sample["source"]))
-    return sample
-
-
-def mk_update_input_fn():
-    if args.perturbation == "hallucination":
-        return apply_hallucination
-    else:
-        return add_instruction_token
-
-
-# Load the reference set
-
-_, validation_loader, test_loader = load_requested_dataset(
-    args.in_config,
-    tokenizer,
-    args.batch_size,
-    0,
-    args.validation_size,
-    args.test_size,
-    update_input_fn=mk_update_input_fn(),
-)
-
-# Fit the detectors on the behavior of the model on the (in) validation set
-detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
-
-# ====================== Evaluate the detectors on the (in) validation set ====================== #
-
-# Evaluate the model on the (in) validation set:
-print("Evaluating on the in-distribution validation set")
-records = evaluate_dataloader(
-    model,
-    validation_loader,
-    tokenizer,
-    detectors,
-    metric_eval=metric_eval,
-    generation_config=gen_config,
-)
-
-inval_ds_scores_path = Path(args.output_dir) / (
-    "validation_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
-)
-inval_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
-
-records["metadata"] = METADATA
-records["metadata"]["dataset_in"] = args.in_config
-records["metadata"]["dataset_out"] = args.in_config
-
-dump_pickle(records, inval_ds_scores_path)
-
-# ====================== Evaluate the detectors on the (in) test set ====================== #
-
-# Evaluate the model on the (in) test set
-print("Evaluating on the in-distribution test set")
-
-records = evaluate_dataloader(
-    model,
-    test_loader,
-    tokenizer,
-    detectors,
-    generation_config=gen_config,
-    metric_eval=metric_eval,
-)
-
-in_ds_scores_path = Path(args.output_dir) / (
-    "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
-)
-in_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
-
-records["metadata"] = METADATA
-records["metadata"]["dataset_in"] = args.in_config
-records["metadata"]["dataset_out"] = args.in_config
-
-dump_pickle(records, in_ds_scores_path)
-
-# ====================== Evaluate the detectors on the (out) test sets ====================== #
-if args.out_configs is None:
-    # exit:
-    exit(0)
-
-print("BEGIN OOD EVALUATION")
-
-for out_config in tqdm(args.out_configs):
-    # Load the out-of-distribution set
-    _, _, test_loader = load_requested_dataset(
-        out_config,
+    _, validation_loader, test_loader = load_requested_dataset(
+        args.in_config,
         tokenizer,
         args.batch_size,
         0,
-        0,
+        args.validation_size,
         args.test_size,
-        update_input_fn=add_instruction_token,
+        update_input_fn=mk_update_input_fn(),
     )
 
-    # Evaluate the model on the (out) test set
-    print("Evaluating on the out-of-distribution test set")
+    # Fit the detectors on the behavior of the model on the (in) validation set
+    detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
+
+    # ====================== Evaluate the detectors on the (in) validation set ====================== #
+
+    # Evaluate the model on the (in) validation set:
+    print("Evaluating on the in-distribution validation set")
+    records = evaluate_dataloader(
+        model,
+        validation_loader,
+        tokenizer,
+        detectors,
+        metric_eval=metric_eval,
+        generation_config=gen_config,
+    )
+
+    inval_ds_scores_path = Path(args.output_dir) / (
+        "validation_scores/"
+        + mk_file_name(args.model_name, args.in_config, args.in_config)
+    )
+    inval_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
+
+    records["metadata"] = METADATA
+    records["metadata"]["dataset_in"] = args.in_config
+    records["metadata"]["dataset_out"] = args.in_config
+
+    dump_pickle(records, inval_ds_scores_path)
+
+    # ====================== Evaluate the detectors on the (in) test set ====================== #
+
+    # Evaluate the model on the (in) test set
+    print("Evaluating on the in-distribution test set")
+
     records = evaluate_dataloader(
         model,
         test_loader,
@@ -375,13 +330,54 @@ for out_config in tqdm(args.out_configs):
         metric_eval=metric_eval,
     )
 
-    out_ds_scores_path = Path(args.output_dir) / (
-        "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
+    in_ds_scores_path = Path(args.output_dir) / (
+        "test_scores/" + mk_file_name(args.model_name, args.in_config, args.in_config)
     )
-    out_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
+    in_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
 
     records["metadata"] = METADATA
     records["metadata"]["dataset_in"] = args.in_config
-    records["metadata"]["dataset_out"] = out_config
+    records["metadata"]["dataset_out"] = args.in_config
 
-    dump_pickle(records, out_ds_scores_path)
+    dump_pickle(records, in_ds_scores_path)
+
+    # ====================== Evaluate the detectors on the (out) test sets ====================== #
+    if args.out_configs is None:
+        # exit:
+        exit(0)
+
+    print("BEGIN OOD EVALUATION")
+
+    for out_config in tqdm(args.out_configs):
+        # Load the out-of-distribution set
+        _, _, test_loader = load_requested_dataset(
+            out_config,
+            tokenizer,
+            args.batch_size,
+            0,
+            0,
+            args.test_size,
+            update_input_fn=add_instruction_token,
+        )
+
+        # Evaluate the model on the (out) test set
+        print("Evaluating on the out-of-distribution test set")
+        records = evaluate_dataloader(
+            model,
+            test_loader,
+            tokenizer,
+            detectors,
+            generation_config=gen_config,
+            metric_eval=metric_eval,
+        )
+
+        out_ds_scores_path = Path(args.output_dir) / (
+            "test_scores/" + mk_file_name(args.model_name, args.in_config, out_config)
+        )
+        out_ds_scores_path.parent.mkdir(parents=True, exist_ok=True)
+
+        records["metadata"] = METADATA
+        records["metadata"]["dataset_in"] = args.in_config
+        records["metadata"]["dataset_out"] = out_config
+
+        dump_pickle(records, out_ds_scores_path)

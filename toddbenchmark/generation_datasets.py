@@ -1,7 +1,7 @@
 import random
 from typing import Tuple
 
-from datasets import load_dataset, Dataset
+from datasets import load_dataset, Dataset, load_from_disk
 from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, AutoModelForCausalLM
 import torch
 
@@ -668,6 +668,94 @@ def load_tweetqa(dataset_name, dataset_config):
     return dataset
 
 
+def load_hendrycks(dataset_name, dataset_config):
+    topics = [
+        "abstract_algebra",
+        "anatomy",
+        "astronomy",
+        "business_ethics",
+        "clinical_knowledge",
+        "college_biology",
+        "college_chemistry",
+        "college_computer_science",
+        "college_mathematics",
+        "college_medicine",
+        "college_physics",
+        "computer_security",
+        "conceptual_physics",
+        "econometrics",
+        "electrical_engineering",
+        "elementary_mathematics",
+        "formal_logic",
+        "global_facts",
+        "high_school_biology",
+        "high_school_chemistry",
+        "high_school_computer_science",
+        "high_school_european_history",
+        "high_school_geography",
+        "high_school_government_and_politics",
+        "high_school_macroeconomics",
+        "high_school_mathematics",
+        "high_school_microeconomics",
+        "high_school_physics",
+        "high_school_psychology",
+        "high_school_statistics",
+        "high_school_us_history",
+        "high_school_world_history",
+        "human_aging",
+        "human_sexuality",
+        "international_law",
+        "jurisprudence",
+        "logical_fallacies",
+        "machine_learning",
+        "management",
+        "marketing",
+        "medical_genetics",
+        "miscellaneous",
+        "moral_disputes",
+        "moral_scenarios",
+        "nutrition",
+        "philosophy",
+        "prehistory",
+        "professional_accounting",
+        "professional_law",
+        "professional_medicine",
+        "professional_psychology",
+        "public_relations",
+        "security_studies",
+        "sociology",
+        "us_foreign_policy",
+        "virology",
+        "world_religions",
+    ]
+
+    train = []
+    validation = []
+    test = []
+
+    for topic in topics:
+        dataset = load_dataset("hendrycks_test", topic)
+
+        def mk_input(x):
+            return f"{x['context']} ; Question: {x['question']}"
+
+
+def load_natural_instructions(dataset_name, dataset_config):
+    dataset = load_from_disk(
+        "/gpfsdswork/projects/rech/ehz/uwf24rf/ToddProject/datasets/natural-instructions/",
+        # verification_mode="no_checks",
+    )
+
+    def mk_input(x):
+        return f"{x['definition']}.\n {x['inputs']}"
+
+    train = [(mk_input(x), x["targets"]) for x in dataset["train"]]
+    validation = [(mk_input(x), x["targets"]) for x in dataset["validation"]]
+    test = [(mk_input(x), x["targets"]) for x in dataset["test"]]
+
+    return {"train": train, "validation": validation, "test": test}
+
+
 def load_quartz(dataset_name, dataset_config):
     dataset = load_dataset(
         "quartz",
@@ -937,6 +1025,12 @@ def prep_dataset(
             dataset_config,
         )
 
+    elif dataset_name == "natural_instructions":
+        dataset = load_natural_instructions(
+            dataset_name,
+            dataset_config,
+        )
+
     elif dataset_name == "ai2_arc":
         dataset = load_ai2arc(
             dataset_name,
@@ -989,13 +1083,13 @@ def prep_model(model_name, device="cuda"):
         tokenizer.truncation_side = "left"
         tokenizer.model_max_length = 50
         model = AutoModelForCausalLM.from_pretrained(
-            model_name, device_map="auto", load_in_8bit=True
+            model_name, device_map="auto", load_in_8bit=True, torch_dtype=torch.bfloat16
         )
 
     if model_name == "nomic-ai/gpt4all-j":
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         model = AutoModelForCausalLM.from_pretrained(
-            model_name, device_map="auto", load_in_8bit=True
+            model_name, device_map="auto", torch_dtype=torch.float16
         )
         added_tokens = tokenizer.add_special_tokens(
             {"bos_token": "<s>", "eos_token": "</s>", "pad_token": "<pad>"}
@@ -1005,9 +1099,11 @@ def prep_model(model_name, device="cuda"):
 
     elif "google/flan" in model_name:
         tokenizer = AutoTokenizer.from_pretrained(
+            model_name,
+        )
+        model = AutoModelForSeq2SeqLM.from_pretrained(
             model_name, device_map="auto", torch_dtype=torch.bfloat16
         )
-        model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
     else:
         tokenizer = AutoTokenizer.from_pretrained(model_name)
