@@ -12,7 +12,11 @@ from Todd import ScorerType
 
 
 def prepare_detectors(
-    detectors: List[ScorerType], model, loader: DataLoader, tokenizer
+    detectors: List[ScorerType],
+    model,
+    loader: DataLoader,
+    tokenizer,
+    force_bos_token_id=None,
 ) -> List[ScorerType]:
     """
     Fit the detectors on the behavior of the model on the (in) validation set
@@ -42,6 +46,7 @@ def prepare_detectors(
             return_dict_in_generate=True,
             output_scores=True,
             output_hidden_states=True,
+            force_bos_token_id=force_bos_token_id,
         )
 
         for detector in detectors:
@@ -199,10 +204,29 @@ def evaluate_dataloader(
                     records[k] = []
                 records[k].extend(v)
 
-            sequences_scores = output.sequences_scores.view(
-                output.sequences_scores.shape[0] // num_return_sequences,
-                num_return_sequences,
-            ).tolist()
+            if hasattr(output, "sequences_scores"):
+                sequences_scores = output.sequences_scores.view(
+                    output.sequences_scores.shape[0] // num_return_sequences,
+                    num_return_sequences,
+                ).tolist()
+            else:
+                sequences_scores = model.compute_transition_scores(
+                    output.sequences,
+                    output.scores,
+                    beam_indices=(
+                        output.beam_indices if hasattr(output, "beam_indices") else None
+                    ),
+                    normalize_logits=False,
+                )
+
+                sequences_scores = (
+                    sequences_scores.sum(-1)
+                    .view(
+                        sequences_scores.shape[0] // num_return_sequences,
+                        num_return_sequences,
+                    )
+                    .tolist()
+                )
 
             records["likelihood"].extend(sequences_scores)
 

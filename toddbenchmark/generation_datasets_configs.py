@@ -20,7 +20,7 @@ TRANSLATION_DATASETS["wmt16_de_en"] = BASE_CONFIG | {
 }
 
 # news_commentary
-TRANSLATION_DATASETS["news_commentary_en_de"] = BASE_CONFIG | {
+TRANSLATION_DATASETS["news_commentary_de_en"] = BASE_CONFIG | {
     "dataset_name": "news_commentary",
     "dataset_config": "de-en",
 }

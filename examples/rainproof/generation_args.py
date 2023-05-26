@@ -1,4 +1,13 @@
 GENERATION_CONFIGS = {
+    "deterministic": {
+        "num_beams": 4,
+        "num_return_sequences": 4,
+        "temperature": 1.0,
+        "max_new_tokens": 150,
+        "return_dict_in_generate": True,
+        "output_scores": True,
+        "output_hidden_states": True,
+    },
     "sampling": {
         "num_beams": 2,
         "num_return_sequences": 16,

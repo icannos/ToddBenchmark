@@ -66,6 +66,12 @@ def parse_args():
         default="tatoeba_mt_deu_eng",
         choices=config_choices,
     )
+
+    parser.add_argument(
+        "--tgt_lang_code",
+        type=str,
+    )
+
     parser.add_argument(
         "--out_configs",
         type=str,
@@ -164,15 +170,32 @@ if __name__ == "__main__":
         "perturbation": args.perturbation,
     }
 
+    small_code_to_lang_code = {
+        "deu": "deu_Latn",
+        "eng": "eng_Latn",
+        "fra": "fra_Latn",
+        "nld": "nld_Latn",
+        "spa": "spa_Latn",
+        "por": "por_Latn",
+        "afr": "afr_Latn",
+    }
+
+    src_lang_code = args.in_config.split("_")[2]
+    src_lang_code = small_code_to_lang_code[src_lang_code]
+
     # Load model and tokenizer
-    model, tokenizer = prep_model(args.model_name, args.device)
+    model, tokenizer = prep_model(args.model_name, args.device, src_lang=src_lang_code)
 
     gen_config = GenerationConfig(**GENERATION_CONFIGS[args.generation_config])
+    gen_config["forced_bos_token_id"] = tokenizer.lang_code_to_id["eng_Latn"]
 
     TEMPERATURES = [
+        0.05,
         0.1,
         0.5,
+        0.9,
         1,
+        1.1,
         1.5,
         2,
         2.5,
@@ -181,37 +204,35 @@ if __name__ == "__main__":
         5,
     ]
 
-    ALPHAS = [0.01, 0.1, 0.5, 0.9, 1.1, 1.5, 2] + [5]
+    ALPHAS = [0.01, 0.05, 0.1, 0.3, 0.5, 0.7, 0.9, 1.1, 1.5, 2] + [5]
 
-    detectors = []
+    detectors: List[ScorerType] = [
+        SequenceFisherRaoScorer(
+            alpha=a,
+            temperature=t,
+            mode="output",  # input, output, token
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+            num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+        )
+        for t in TEMPERATURES
+        for a in ALPHAS
+    ]
 
-    # detectors: List[ScorerType] = [
-    #     SequenceFisherRaoScorer(
-    #         alpha=a,
-    #         temperature=t,
-    #         mode="token",  # input, output, token
-    #         num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-    #             "num_return_sequences"
-    #         ],
-    #         num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    #     )
-    #     for t in TEMPERATURES
-    #     for a in ALPHAS
-    # ]
-
-    # detectors = [
-    #     SequenceRenyiNegScorer(
-    #         alpha=a,
-    #         temperature=t,
-    #         mode="output",  # input, output, token
-    #         num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-    #             "num_return_sequences"
-    #         ],
-    #         num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    #     )
-    #     for t in TEMPERATURES
-    #     for a in ALPHAS
-    # ]
+    detectors = [
+        SequenceRenyiNegScorer(
+            alpha=a,
+            temperature=t,
+            mode="output",  # input, output, token
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+            num_beam=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+        )
+        for t in TEMPERATURES
+        for a in ALPHAS
+    ]
 
     # detectors += [
     #     BeamRenyiInformationProjection(
@@ -234,35 +255,35 @@ if __name__ == "__main__":
     #     )
     # ]
 
-    # detectors += [
-    #     # InformationProjection(
-    #     #     alpha=0.5,
-    #     #     temperature=1,
-    #     #     use_soft_projection=True,
-    #     #     n_neighbors=8,
-    #     #     pad_token_id=tokenizer.pad_token_id,
-    #     #     num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-    #     #         "num_return_sequences"
-    #     #     ],
-    #     #     num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    #     #     mode="output",
-    #     # ),
-    #     SoftMaxEnergyScorer(
-    #         mode="output",
-    #         num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    #         num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-    #             "num_return_sequences"
-    #         ],
-    #     ),
-    #     SequenceMSPScorer(
-    #         mode="output",
-    #         num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
-    #         num_return_sequences=GENERATION_CONFIGS[args.generation_config][
-    #             "num_return_sequences"
-    #         ],
-    #     ),
-    # ]
-    # detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])
+    detectors += [
+        # InformationProjection(
+        #     alpha=0.5,
+        #     temperature=1,
+        #     use_soft_projection=True,
+        #     n_neighbors=8,
+        #     pad_token_id=tokenizer.pad_token_id,
+        #     num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+        #         "num_return_sequences"
+        #     ],
+        #     num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+        #     mode="output",
+        # ),
+        SoftMaxEnergyScorer(
+            mode="output",
+            num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+        ),
+        SequenceMSPScorer(
+            mode="output",
+            num_beams=GENERATION_CONFIGS[args.generation_config]["num_beams"],
+            num_return_sequences=GENERATION_CONFIGS[args.generation_config][
+                "num_return_sequences"
+            ],
+        ),
+    ]
+    detectors.extend([MahalanobisScorer(), CosineProjectionScorer(), DataDepthScorer()])
 
     def add_instruction_token(sample):
         sample["source"] = f"{args.instruction}{sample['source']}"
@@ -291,7 +312,13 @@ if __name__ == "__main__":
     )
 
     # Fit the detectors on the behavior of the model on the (in) validation set
-    detectors = prepare_detectors(detectors, model, validation_loader, tokenizer)
+    detectors = prepare_detectors(
+        detectors,
+        model,
+        validation_loader,
+        tokenizer,
+        force_bos_token_id=tokenizer.lang_code_to_id["eng_Latn"],
+    )
 
     # ====================== Evaluate the detectors on the (in) validation set ====================== #
 

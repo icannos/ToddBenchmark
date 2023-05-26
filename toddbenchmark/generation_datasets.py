@@ -1077,7 +1077,7 @@ def prep_dataset(
     return train, val, test
 
 
-def prep_model(model_name, device="cuda"):
+def prep_model(model_name, device="cuda", src_lang=None):
     if model_name == "microsoft/DialoGPT-medium" or model_name == "tosin/dialogpt_mwoz":
         tokenizer = AutoTokenizer.from_pretrained(model_name)
         tokenizer.truncation_side = "left"
@@ -1103,6 +1103,20 @@ def prep_model(model_name, device="cuda"):
         )
         model = AutoModelForSeq2SeqLM.from_pretrained(
             model_name, device_map="auto", torch_dtype=torch.bfloat16
+        )
+
+    elif "nllb" in model_name:
+        tokenizer = AutoTokenizer.from_pretrained(model_name, src_lang=src_lang)
+        model = AutoModelForSeq2SeqLM.from_pretrained(
+            model_name, device_map="auto", torch_dtype=torch.bfloat16
+        )
+
+    elif "bloomz" in model_name:
+        tokenizer = AutoTokenizer.from_pretrained("bigscience/bloomz")
+        model = AutoModelForCausalLM.from_pretrained(
+            "bigscience/bloomz-560m",
+            device_map="auto",
+            torch_dtype=torch.bfloat16,
         )
 
     else:
